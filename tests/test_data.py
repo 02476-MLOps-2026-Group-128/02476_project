@@ -1,9 +1,9 @@
 from torch.utils.data import Dataset
 
-from diabetic_classification.data import MyDataset
+from diabetic_classification.data import DiabetesHealthDataset
 
 
 def test_my_dataset():
     """Test the MyDataset class."""
-    dataset = MyDataset("data/raw")
+    dataset = DiabetesHealthDataset("data/raw")
     assert isinstance(dataset, Dataset)

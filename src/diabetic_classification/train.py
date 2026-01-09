@@ -1,8 +1,8 @@
 from diabetic_classification.model import Model
-from diabetic_classification.data import MyDataset
+from diabetic_classification.data import DiabetesHealthDataset
 
 def train():
-    dataset = MyDataset("data/raw")
+    dataset = DiabetesHealthDataset("data/raw")
     model = Model()
     # add rest of your training code here
 
