@@ -71,6 +71,10 @@ class DiabetesHealthDataset(LightningDataModule):
         'smoking_status',
         'diabetes_stage'
     ]
+    CATEGORICAL_TARGET_ATTRIBUTES: list[str] = [
+        'diagnosed_diabetes',
+        'diabetes_stage'
+    ]
 
     def __init__(
         self,
@@ -104,6 +108,7 @@ class DiabetesHealthDataset(LightningDataModule):
         self.pin_memory = pin_memory
         self.val_split = val_split
         self.target_attributes = self._normalize_target_attributes(target_attributes)
+        self.stratification_attributes = self._derive_stratification_attributes()
 
         self.train_dataset: Optional[DiabetesTabularDataset] = None
         self.val_dataset: Optional[DiabetesTabularDataset] = None
@@ -155,7 +160,7 @@ class DiabetesHealthDataset(LightningDataModule):
             .str.lower()
 
         # Split data into train and test sets
-        stratify_series = self._build_stratify_series(df_encoded)
+        stratify_series = self._build_stratify_series(df_encoded, self.stratification_attributes)
         train_df, test_df = train_test_split(
             df_encoded,
             test_size=constants.TEST_SIZE,
@@ -213,7 +218,7 @@ class DiabetesHealthDataset(LightningDataModule):
             if self.train_dataset is None or self.val_dataset is None:
                 train_df = self._load_split("train_data.csv")
                 target_columns = self._ensure_target_columns(train_df.columns)
-                stratify_series = self._build_stratify_series(train_df)
+                stratify_series = self._build_stratify_series(train_df, self.stratification_attributes)
 
                 train_df, val_df = train_test_split(
                     train_df,
@@ -319,6 +324,11 @@ class DiabetesHealthDataset(LightningDataModule):
 
         return attributes
 
+    def _derive_stratification_attributes(self) -> list[str]:
+        """Select categorical targets that support stratification."""
+        categorical = set(self.CATEGORICAL_TARGET_ATTRIBUTES)
+        return [attr for attr in self.target_attributes if attr in categorical]
+
     def _ensure_target_columns(self, available_columns: Sequence[str]) -> list[str]:
         """Resolve and cache the concrete target columns present in the data."""
         if self.target_columns is None:
@@ -332,11 +342,11 @@ class DiabetesHealthDataset(LightningDataModule):
 
     def _build_stratify_series(
         self, df: pd.DataFrame, attributes: Optional[Sequence[str]] = None
-    ) -> pd.Series:
-        """Return a 1D series that can be used for stratified splitting."""
-        attributes = list(attributes or self.target_attributes)
+    ) -> Optional[pd.Series]:
+        """Return a 1D series for stratified splitting or None if not applicable."""
+        attributes = [attr for attr in (attributes or []) if attr]
         if not attributes:
-            raise ValueError("target_attributes must be provided for stratification.")
+            return None
 
         attribute_labels: list[pd.Series] = []
         for attribute in attributes:
