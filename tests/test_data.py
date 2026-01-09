@@ -88,6 +88,51 @@ def test_dataset_respects_split_sizes():
 	assert len(dataset.val_dataset) == len(expected_val_df)
 
 
+def test_dataset_allows_feature_subset():
+	data_dir = Path("data")
+	_ensure_processed_data(data_dir)
+	feature_attributes = ["age", "bmi", "gender"]
+	dataset = DiabetesHealthDataset(
+		data_dir,
+		target_attributes="diagnosed_diabetes",
+		feature_attributes=feature_attributes,
+	)
+	dataset.setup("fit")
+
+	assert dataset.train_dataset is not None
+
+	train_df = dataset._load_split("train_data.csv")
+	target_columns = dataset._ensure_target_columns(train_df.columns)
+	stratify_series = dataset._build_stratify_series(train_df, dataset.stratification_attributes)
+	expected_train_df, _ = train_test_split(
+		train_df,
+		test_size=dataset.val_split,
+		random_state=constants.SEED,
+		stratify=stratify_series,
+	)
+
+	expected_columns: list[str] = []
+	for attribute in feature_attributes:
+		expected_columns.extend(dataset._resolve_columns(train_df.columns, attribute))
+	expected_columns = [
+		column for column in expected_columns if column not in target_columns
+	]
+	seen: set[str] = set()
+	expected_columns = [
+		column for column in expected_columns if not (column in seen or seen.add(column))
+	]
+
+	assert dataset.feature_columns == expected_columns
+
+	expected_array = expected_train_df[expected_columns].to_numpy(dtype="float32")
+	np.testing.assert_allclose(
+		dataset.train_dataset.features.numpy(),
+		expected_array,
+		rtol=1e-5,
+		atol=1e-6,
+	)
+
+
 @pytest.mark.download
 def test_prepare_data_downloads_and_processes(tmp_path: Path):
 	data_dir = tmp_path / "data"

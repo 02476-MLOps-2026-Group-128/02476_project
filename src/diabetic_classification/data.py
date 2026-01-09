@@ -19,12 +19,18 @@ from diabetic_classification import constants
 class DiabetesTabularDataset(Dataset):
     """Torch dataset that wraps tabular diabetes data."""
 
-    def __init__(self, data: pd.DataFrame, target_attributes: Sequence[str]) -> None:
+    def __init__(
+        self,
+        data: pd.DataFrame,
+        target_attributes: Sequence[str],
+        feature_columns: Optional[Sequence[str]] = None,
+    ) -> None:
         """Initialize tensors for features and labels.
 
         Args:
             data: Preprocessed pandas DataFrame containing one data split.
             target_attributes: Attribute names that should be treated as the supervised target.
+            feature_columns: Optional explicit feature column selection to retain.
         """
         if not target_attributes:
             raise ValueError("target_attributes must contain at least one column name.")
@@ -35,7 +41,21 @@ class DiabetesTabularDataset(Dataset):
                 f"Target attributes {missing_columns} not present in the provided DataFrame."
             )
 
-        features = data.drop(columns=list(target_attributes)).to_numpy(dtype="float32")
+        if feature_columns is not None:
+            if not feature_columns:
+                raise ValueError("feature_columns must contain at least one column when provided.")
+            missing_features = [col for col in feature_columns if col not in data.columns]
+            if missing_features:
+                raise ValueError(
+                    f"Feature columns {missing_features} not present in the provided DataFrame."
+                )
+            feature_frame = data[list(feature_columns)]
+        else:
+            feature_frame = data.drop(columns=list(target_attributes))
+            if feature_frame.empty:
+                raise ValueError("No feature columns remain after dropping targets.")
+
+        features = feature_frame.to_numpy(dtype="float32")
         target = data[list(target_attributes)].to_numpy(dtype="float32")
 
         target_tensor = torch.tensor(target, dtype=torch.float32)
@@ -75,6 +95,54 @@ class DiabetesHealthDataset(LightningDataModule):
         'diagnosed_diabetes',
         'diabetes_stage'
     ]
+    PROCESSED_COLUMNS: list[str] = [
+        'age',
+        'alcohol_consumption_per_week',
+        'physical_activity_minutes_per_week',
+        'diet_score',
+        'sleep_hours_per_day',
+        'screen_time_hours_per_day',
+        'family_history_diabetes',
+        'hypertension_history',
+        'cardiovascular_history',
+        'bmi',
+        'waist_to_hip_ratio',
+        'systolic_bp',
+        'diastolic_bp',
+        'heart_rate',
+        'cholesterol_total',
+        'hdl_cholesterol',
+        'ldl_cholesterol',
+        'triglycerides',
+        'glucose_fasting',
+        'glucose_postprandial',
+        'insulin_level',
+        'hba1c',
+        'diabetes_risk_score',
+        'diagnosed_diabetes',
+        'gender_male',
+        'gender_other',
+        'ethnicity_black',
+        'ethnicity_hispanic',
+        'ethnicity_other',
+        'ethnicity_white',
+        'education_level_highschool',
+        'education_level_no_formal',
+        'education_level_postgraduate',
+        'income_level_low',
+        'income_level_lower-middle',
+        'income_level_middle',
+        'income_level_upper-middle',
+        'employment_status_retired',
+        'employment_status_student',
+        'employment_status_unemployed',
+        'smoking_status_former',
+        'smoking_status_never',
+        'diabetes_stage_no_diabetes',
+        'diabetes_stage_pre-diabetes',
+        'diabetes_stage_type_1',
+        'diabetes_stage_type_2'
+    ]
 
     def __init__(
         self,
@@ -84,6 +152,7 @@ class DiabetesHealthDataset(LightningDataModule):
         pin_memory: bool = False,
         val_split: float = 0.1,
         target_attributes: Sequence[str] | str = "diagnosed_diabetes",
+        feature_attributes: Sequence[str] | str | None = None,
     ) -> None:
         """Initialize data module configuration.
 
@@ -94,6 +163,7 @@ class DiabetesHealthDataset(LightningDataModule):
             pin_memory: Whether loaders should pin memory for CUDA training.
             val_split: Fraction of the training data to reserve for validation.
             target_attributes: Supervised target attribute(s) to predict/stratify (defaults to 'diagnosed_diabetes').
+            feature_attributes: Optional feature attribute(s) to retain after preprocessing. Defaults to all features.
         """
         super().__init__()
 
@@ -108,12 +178,14 @@ class DiabetesHealthDataset(LightningDataModule):
         self.pin_memory = pin_memory
         self.val_split = val_split
         self.target_attributes = self._normalize_target_attributes(target_attributes)
+        self.feature_attributes = self._normalize_feature_attributes(feature_attributes)
         self.stratification_attributes = self._derive_stratification_attributes()
 
         self.train_dataset: Optional[DiabetesTabularDataset] = None
         self.val_dataset: Optional[DiabetesTabularDataset] = None
         self.test_dataset: Optional[DiabetesTabularDataset] = None
         self.target_columns: Optional[list[str]] = None
+        self.feature_columns: Optional[list[str]] = None
 
     def prepare_data(self) -> None:
         """Prepare the data by downloading and preprocessing."""
@@ -216,24 +288,34 @@ class DiabetesHealthDataset(LightningDataModule):
 
         if stage in (None, "fit", "validate"):
             if self.train_dataset is None or self.val_dataset is None:
-                train_df = self._load_split("train_data.csv")
-                target_columns = self._ensure_target_columns(train_df.columns)
-                stratify_series = self._build_stratify_series(train_df, self.stratification_attributes)
+                train_source_df = self._load_split("train_data.csv")
+                target_columns = self._ensure_target_columns(train_source_df.columns)
+                feature_columns = self._resolve_feature_columns(train_source_df.columns, target_columns)
+                stratify_series = self._build_stratify_series(
+                    train_source_df, self.stratification_attributes
+                )
 
                 train_df, val_df = train_test_split(
-                    train_df,
+                    train_source_df,
                     test_size=self.val_split,
                     random_state=constants.SEED,
                     stratify=stratify_series,
                 )
 
-                self.train_dataset = DiabetesTabularDataset(train_df, target_columns)
-                self.val_dataset = DiabetesTabularDataset(val_df, target_columns)
+                self.train_dataset = DiabetesTabularDataset(
+                    train_df, target_columns, feature_columns
+                )
+                self.val_dataset = DiabetesTabularDataset(
+                    val_df, target_columns, feature_columns
+                )
 
         if stage in (None, "test", "predict") and self.test_dataset is None:
             test_df = self._load_split("test_data.csv")
             target_columns = self._ensure_target_columns(test_df.columns)
-            self.test_dataset = DiabetesTabularDataset(test_df, target_columns)
+            feature_columns = self._resolve_feature_columns(test_df.columns, target_columns)
+            self.test_dataset = DiabetesTabularDataset(
+                test_df, target_columns, feature_columns
+            )
 
     def train_dataloader(self) -> DataLoader:
         """Return the training dataloader."""
@@ -297,6 +379,11 @@ class DiabetesHealthDataset(LightningDataModule):
         processed_dir = output_folder or (self.data_dir / "processed")
         self.__preprocess_data(raw_dir, processed_dir)
 
+    def select_features(self, feature_attributes: Sequence[str] | str | None) -> None:
+        """Update the feature subset used when constructing datasets."""
+        self.feature_attributes = self._normalize_feature_attributes(feature_attributes)
+        self.feature_columns = None
+
     def __len__(self) -> int:
         """Return the length of the training dataset if available."""
         if self.train_dataset is None:
@@ -324,10 +411,58 @@ class DiabetesHealthDataset(LightningDataModule):
 
         return attributes
 
+    def _normalize_feature_attributes(
+        self, feature_attributes: Sequence[str] | str | None
+    ) -> Optional[list[str]]:
+        """Normalize optional feature attribute input."""
+        if feature_attributes is None:
+            return None
+
+        if isinstance(feature_attributes, str):
+            attributes = [feature_attributes]
+        else:
+            attributes = list(feature_attributes)
+
+        attributes = [attr for attr in attributes if attr]
+        if not attributes:
+            raise ValueError("feature_attributes must contain at least one attribute name when provided.")
+
+        return attributes
+
     def _derive_stratification_attributes(self) -> list[str]:
         """Select categorical targets that support stratification."""
         categorical = set(self.CATEGORICAL_TARGET_ATTRIBUTES)
         return [attr for attr in self.target_attributes if attr in categorical]
+
+    def _resolve_feature_columns(
+        self, available_columns: Sequence[str], target_columns: Sequence[str]
+    ) -> list[str]:
+        """Resolve the concrete feature columns retained for model inputs."""
+        if self.feature_columns is not None:
+            return self.feature_columns
+
+        if self.feature_attributes is None:
+            features = [column for column in available_columns if column not in target_columns]
+            if not features:
+                raise ValueError("No feature columns remain after removing targets.")
+            self.feature_columns = features
+            return self.feature_columns
+
+        resolved: list[str] = []
+        for attribute in self.feature_attributes:
+            resolved.extend(self._resolve_columns(available_columns, attribute))
+
+        features = [column for column in resolved if column not in target_columns]
+        if not features:
+            raise ValueError(
+                "Feature attribute selection removed all available feature columns."
+            )
+
+        seen: set[str] = set()
+        self.feature_columns = [
+            column for column in features if not (column in seen or seen.add(column))
+        ]
+        return self.feature_columns
 
     def _ensure_target_columns(self, available_columns: Sequence[str]) -> list[str]:
         """Resolve and cache the concrete target columns present in the data."""
