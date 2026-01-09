@@ -194,94 +194,6 @@ class DiabetesHealthDataset(LightningDataModule):
         self.__download_data(raw_dir)
         self.__preprocess_data(raw_dir, processed_dir)
 
-    def __download_data(self, dest_path: Path = Path("data/raw")) -> None:
-        """Download the data if it doesn't exist."""
-        if dest_path.exists() and any(dest_path.iterdir()):
-            print(f"Data already exists in {dest_path}. Skipping download.")
-            return
-
-        cache_path = kagglehub.dataset_download(self.KAGGLE_DS_NAME, force_download=True)
-
-        # Create destination directory if it doesn't exist
-        os.makedirs(dest_path, exist_ok=True)
-
-        # Move all files from cache to the destination folder
-        for file in os.listdir(cache_path):
-            shutil.move(os.path.join(cache_path, file),
-                        os.path.join(dest_path, file))
-
-    def __preprocess_data(self,
-                          raw_data_dir: Path = Path("data/raw"),
-                          output_folder: Path = Path("data/processed")
-                          ) -> None:
-        """Preprocess the raw data and save it to the output folder."""
-        table = csv.read_csv(raw_data_dir / "diabetes_dataset.csv")
-        df = table.to_pandas(self_destruct=True)
-
-        # Find categorical columns
-        categorical_columns = df.select_dtypes(
-            include=['object', 'category']).columns.tolist()
-
-        # One-hot encode categorical columns
-        df_encoded = pd.get_dummies(
-            df, columns=categorical_columns, drop_first=True)
-
-        # Fix column names by removing spaces and special characters
-        df_encoded.columns = df_encoded.columns\
-            .str.replace(' ', '_')\
-            .str.lower()
-
-        # Split data into train and test sets
-        stratify_series = self._build_stratify_series(df_encoded, self.stratification_attributes)
-        train_df, test_df = train_test_split(
-            df_encoded,
-            test_size=constants.TEST_SIZE,
-            random_state=constants.SEED,
-            stratify=stratify_series
-        )
-
-        # Compute training standardization parameters and normalize splits
-        numerical_feature_columns = [
-            col for col in train_df.columns
-            if not any(class_col in col for class_col in self.POSSIBLE_TARGET_ATTRIBUTES)
-            and not any(cat_col in col for cat_col in self.CATEGORICAL_ATTRIBUTES)
-        ]
-
-        if numerical_feature_columns:
-            # Cast once to float32 so normalization uses consistent dtype.
-            dtype_map = {col: "float32" for col in numerical_feature_columns}
-            train_df = train_df.astype(dtype_map)
-            test_df = test_df.astype(dtype_map)
-
-            numeric_means = train_df[numerical_feature_columns].mean()
-            numeric_stds = train_df[numerical_feature_columns].std().replace(0, 1)
-
-            train_normalized = (
-                train_df[numerical_feature_columns] - numeric_means
-            ) / numeric_stds
-            test_normalized = (
-                test_df[numerical_feature_columns] - numeric_means
-            ) / numeric_stds
-
-            train_df.loc[:, numerical_feature_columns] = train_normalized
-            test_df.loc[:, numerical_feature_columns] = test_normalized
-
-            std_params_df = pd.DataFrame(
-                {
-                    "feature": numeric_means.index,
-                    "mean": numeric_means.values,
-                    "std": numeric_stds.values,
-                }
-            )
-        else:
-            std_params_df = pd.DataFrame(columns=["feature", "mean", "std"])
-
-        # Save processed data
-        os.makedirs(output_folder, exist_ok=True)
-        train_df.to_csv(output_folder / "train_data.csv", index=False)
-        test_df.to_csv(output_folder / "test_data.csv", index=False)
-        std_params_df.to_csv(output_folder / "standardization_params.csv", index=False)
-
     def setup(self, stage: Optional[str] = None) -> None:
         """Setup datasets for the requested Lightning stage."""
         self._ensure_processed_data()
@@ -395,6 +307,94 @@ class DiabetesHealthDataset(LightningDataModule):
         if self.train_dataset is None:
             raise RuntimeError("Call setup('fit') before indexing the dataset.")
         return self.train_dataset[index]
+    
+    def __download_data(self, dest_path: Path = Path("data/raw")) -> None:
+        """Download the data if it doesn't exist."""
+        if dest_path.exists() and any(dest_path.iterdir()):
+            print(f"Data already exists in {dest_path}. Skipping download.")
+            return
+
+        cache_path = kagglehub.dataset_download(self.KAGGLE_DS_NAME, force_download=True)
+
+        # Create destination directory if it doesn't exist
+        os.makedirs(dest_path, exist_ok=True)
+
+        # Move all files from cache to the destination folder
+        for file in os.listdir(cache_path):
+            shutil.move(os.path.join(cache_path, file),
+                        os.path.join(dest_path, file))
+
+    def __preprocess_data(self,
+                          raw_data_dir: Path = Path("data/raw"),
+                          output_folder: Path = Path("data/processed")
+                          ) -> None:
+        """Preprocess the raw data and save it to the output folder."""
+        table = csv.read_csv(raw_data_dir / "diabetes_dataset.csv")
+        df = table.to_pandas(self_destruct=True)
+
+        # Find categorical columns
+        categorical_columns = df.select_dtypes(
+            include=['object', 'category']).columns.tolist()
+
+        # One-hot encode categorical columns
+        df_encoded = pd.get_dummies(
+            df, columns=categorical_columns, drop_first=True)
+
+        # Fix column names by removing spaces and special characters
+        df_encoded.columns = df_encoded.columns\
+            .str.replace(' ', '_')\
+            .str.lower()
+
+        # Split data into train and test sets
+        stratify_series = self._build_stratify_series(df_encoded, self.stratification_attributes)
+        train_df, test_df = train_test_split(
+            df_encoded,
+            test_size=constants.TEST_SIZE,
+            random_state=constants.SEED,
+            stratify=stratify_series
+        )
+
+        # Compute training standardization parameters and normalize splits
+        numerical_feature_columns = [
+            col for col in train_df.columns
+            if not any(class_col in col for class_col in self.POSSIBLE_TARGET_ATTRIBUTES)
+            and not any(cat_col in col for cat_col in self.CATEGORICAL_ATTRIBUTES)
+        ]
+
+        if numerical_feature_columns:
+            # Cast once to float32 so normalization uses consistent dtype.
+            dtype_map = {col: "float32" for col in numerical_feature_columns}
+            train_df = train_df.astype(dtype_map)
+            test_df = test_df.astype(dtype_map)
+
+            numeric_means = train_df[numerical_feature_columns].mean()
+            numeric_stds = train_df[numerical_feature_columns].std().replace(0, 1)
+
+            train_normalized = (
+                train_df[numerical_feature_columns] - numeric_means
+            ) / numeric_stds
+            test_normalized = (
+                test_df[numerical_feature_columns] - numeric_means
+            ) / numeric_stds
+
+            train_df.loc[:, numerical_feature_columns] = train_normalized
+            test_df.loc[:, numerical_feature_columns] = test_normalized
+
+            std_params_df = pd.DataFrame(
+                {
+                    "feature": numeric_means.index,
+                    "mean": numeric_means.values,
+                    "std": numeric_stds.values,
+                }
+            )
+        else:
+            std_params_df = pd.DataFrame(columns=["feature", "mean", "std"])
+
+        # Save processed data
+        os.makedirs(output_folder, exist_ok=True)
+        train_df.to_csv(output_folder / "train_data.csv", index=False)
+        test_df.to_csv(output_folder / "test_data.csv", index=False)
+        std_params_df.to_csv(output_folder / "standardization_params.csv", index=False)
 
     def _normalize_target_attributes(
         self, target_attributes: Sequence[str] | str
