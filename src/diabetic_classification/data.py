@@ -19,7 +19,9 @@ class MyDataset(Dataset):
     def preprocess(self, output_folder: Path) -> None:
         """Preprocess the raw data and save it to the output folder."""
 
+
 def preprocess(data_path: Path, output_folder: Path) -> None:
+    """Preprocess the data located at data_path and save to output_folder."""
     print("Preprocessing data...")
     dataset = MyDataset(data_path)
     dataset.preprocess(output_folder)

@@ -52,6 +52,14 @@ explicit = true
 
 [tool.ruff]
 line-length = 120
+lint.select = ["I", "D", "N", "E", "W"] # Import, Docstring, Naming, Error, Warning
+lint.ignore = [
+    "D100", # Ignore missing docstring in public module
+    "D104", # Ignore missing docstring in public package
+    "D107", # Ignore missing docstring in __init__
+    "D203", # Ignore 1 blank line required before class docstring
+    "D212", # Ignore multi-line docstring summary should start at the first line
+]
 
 [tool.coverage.run]
 omit = ["tests/*"]
