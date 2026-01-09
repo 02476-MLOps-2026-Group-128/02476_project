@@ -75,7 +75,27 @@ class DiabetesTabularDataset(Dataset):
 
 
 class DiabetesHealthDataset(LightningDataModule):
-    """PyTorch Lightning DataModule for the Diabetes Health Indicators Dataset."""
+    """End-to-end data manager for the Diabetes Health Indicators dataset.
+
+    The module downloads the Kaggle dataset when needed, performs one-hot encoding,
+    normalizes numerical features, persists processed CSV splits, and exposes
+    Lightning-ready train/val/test dataloaders. Targets and feature subsets can
+    be configured with semantic attribute names (e.g. ``"gender"`` expands to
+    every encoded column), enabling rapid experimentation without touching the
+    preprocessing pipeline.
+
+    Example:
+        >>> from pathlib import Path
+        >>> dm = DiabetesHealthDataset(
+        ...     data_dir=Path("data"),
+        ...     target_attributes=["diagnosed_diabetes", "diabetes_risk_score"],
+        ...     feature_attributes=["age", "bmi", "gender"],
+        ... )
+        >>> dm.prepare_data()  # downloads + preprocesses once
+        >>> dm.setup("fit")    # materializes train/val datasets
+        >>> batch = next(iter(dm.train_dataloader()))
+    """
+    
     KAGGLE_DS_NAME: str = "mohankrishnathalla/diabetes-health-indicators-dataset"
     POSSIBLE_TARGET_ATTRIBUTES: list[str] = [
         'diabetes_risk_score',
