@@ -7,6 +7,7 @@ import kagglehub
 import pandas as pd
 import torch
 import typer
+from loguru import logger
 from pyarrow import csv
 from pytorch_lightning import LightningDataModule
 from sklearn.model_selection import train_test_split
@@ -211,8 +212,10 @@ class DiabetesHealthDataset(LightningDataModule):
         """Prepare the data by downloading and preprocessing."""
         raw_dir = self.data_dir / "raw"
         processed_dir = self.data_dir / "processed"
+        logger.info("Preparing dataset artifacts in {}", self.data_dir)
         self.__download_data(raw_dir)
         self.__preprocess_data(raw_dir, processed_dir)
+        logger.info("Finished preparing processed data under {}", processed_dir)
 
     def setup(self, stage: Optional[str] = None) -> None:
         """Setup datasets for the requested Lightning stage."""
@@ -220,6 +223,10 @@ class DiabetesHealthDataset(LightningDataModule):
 
         if stage in (None, "fit", "validate"):
             if self.train_dataset is None or self.val_dataset is None:
+                logger.info(
+                    "Configuring training and validation datasets (val_split={})",
+                    self.val_split,
+                )
                 train_source_df = self._load_split("train_data.csv")
                 target_columns = self._ensure_target_columns(train_source_df.columns)
                 feature_columns = self._resolve_feature_columns(train_source_df.columns, target_columns)
@@ -242,6 +249,8 @@ class DiabetesHealthDataset(LightningDataModule):
                 )
 
         if stage in (None, "test", "predict") and self.test_dataset is None:
+            dataset_label = "test" if stage in (None, "test") else "predict"
+            logger.info("Configuring {} dataset", dataset_label)
             test_df = self._load_split("test_data.csv")
             target_columns = self._ensure_target_columns(test_df.columns)
             feature_columns = self._resolve_feature_columns(test_df.columns, target_columns)
@@ -313,6 +322,7 @@ class DiabetesHealthDataset(LightningDataModule):
 
     def select_features(self, feature_attributes: Sequence[str] | str | None) -> None:
         """Update the feature subset used when constructing datasets."""
+        logger.info("Updating feature selection to {}", feature_attributes)
         self.feature_attributes = self._normalize_feature_attributes(feature_attributes)
         self.feature_columns = None
 
@@ -331,9 +341,10 @@ class DiabetesHealthDataset(LightningDataModule):
     def __download_data(self, dest_path: Path = Path("data/raw")) -> None:
         """Download the data if it doesn't exist."""
         if dest_path.exists() and any(dest_path.iterdir()):
-            print(f"Data already exists in {dest_path}. Skipping download.")
+            logger.info("Raw data already present at {}, skipping download.", dest_path)
             return
 
+        logger.info("Downloading '{}' to {}", self.KAGGLE_DS_NAME, dest_path)
         cache_path = kagglehub.dataset_download(self.KAGGLE_DS_NAME, force_download=True)
 
         # Create destination directory if it doesn't exist
@@ -343,12 +354,14 @@ class DiabetesHealthDataset(LightningDataModule):
         for file in os.listdir(cache_path):
             shutil.move(os.path.join(cache_path, file),
                         os.path.join(dest_path, file))
+        logger.info("Completed download and extracted files to {}", dest_path)
 
     def __preprocess_data(self,
                           raw_data_dir: Path = Path("data/raw"),
                           output_folder: Path = Path("data/processed")
                           ) -> None:
         """Preprocess the raw data and save it to the output folder."""
+        logger.info("Preprocessing raw data from {} into {}", raw_data_dir, output_folder)
         table = csv.read_csv(raw_data_dir / "diabetes_dataset.csv")
         df = table.to_pandas(self_destruct=True)
 
@@ -373,6 +386,11 @@ class DiabetesHealthDataset(LightningDataModule):
             random_state=constants.SEED,
             stratify=stratify_series
         )
+        logger.info(
+            "Split dataframe into {} training rows and {} test rows",
+            len(train_df),
+            len(test_df),
+        )
 
         # Compute training standardization parameters and normalize splits
         numerical_feature_columns = [
@@ -382,6 +400,7 @@ class DiabetesHealthDataset(LightningDataModule):
         ]
 
         if numerical_feature_columns:
+            logger.info("Normalizing {} numerical feature columns", len(numerical_feature_columns))
             # Cast once to float32 so normalization uses consistent dtype.
             dtype_map = {col: "float32" for col in numerical_feature_columns}
             train_df = train_df.astype(dtype_map)
@@ -408,6 +427,7 @@ class DiabetesHealthDataset(LightningDataModule):
                 }
             )
         else:
+            logger.info("No numerical feature columns detected; skipping normalization step")
             std_params_df = pd.DataFrame(columns=["feature", "mean", "std"])
 
         # Save processed data
@@ -415,6 +435,7 @@ class DiabetesHealthDataset(LightningDataModule):
         train_df.to_csv(output_folder / "train_data.csv", index=False)
         test_df.to_csv(output_folder / "test_data.csv", index=False)
         std_params_df.to_csv(output_folder / "standardization_params.csv", index=False)
+        logger.info("Persisted processed splits to {}", output_folder)
 
     def _normalize_target_attributes(
         self, target_attributes: Sequence[str] | str
@@ -574,7 +595,7 @@ def prepare_dataset(data_path: Path) -> None:
     Args:
         data_path: Base directory that contains the raw subfolder.
     """
-    print("Preparing data...")
+    logger.info("Preparing data via CLI for base path {}", data_path)
     dataset = DiabetesHealthDataset(data_path)
     dataset.prepare_data()
 
