@@ -36,7 +36,7 @@ class DiabetesTabularDataset(Dataset):
         if not target_attributes:
             raise ValueError("target_attributes must contain at least one column name.")
 
-        missing_columns = [col for col in target_attributes if col not in data.columns]
+        missing_columns = set(target_attributes) - set(data.columns)
         if missing_columns:
             raise ValueError(f"Target attributes {missing_columns} not present in the provided DataFrame.")
 
