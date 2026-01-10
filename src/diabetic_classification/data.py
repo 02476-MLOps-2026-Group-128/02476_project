@@ -43,7 +43,7 @@ class DiabetesTabularDataset(Dataset):
         if feature_columns is not None:
             if not feature_columns:
                 raise ValueError("feature_columns must contain at least one column when provided.")
-            missing_features = [col for col in feature_columns if col not in data.columns]
+            missing_features = set(feature_columns) - set(data.columns)
             if missing_features:
                 raise ValueError(f"Feature columns {missing_features} not present in the provided DataFrame.")
             feature_frame = data[list(feature_columns)]
