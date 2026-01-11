@@ -178,3 +178,8 @@ cython_debug/
 
 # Data files
 data/
+diabetes_dataset.csv
+
+# PyTorch Lightning
+lightning_logs/
+*.ckpt
