@@ -6,6 +6,7 @@ def train():
     dataset = DiabetesHealthDataset("data/raw")
     model = Model()
     # add rest of your training code here
+    print("PLACEHOLDER: the training started...")
 
 
 if __name__ == "__main__":
