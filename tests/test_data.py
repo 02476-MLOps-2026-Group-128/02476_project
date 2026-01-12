@@ -8,6 +8,8 @@ from sklearn.model_selection import train_test_split
 from diabetic_classification import constants
 from diabetic_classification.data import DiabetesHealthDataset
 
+from loguru import logger
+
 
 def _ensure_processed_data(data_dir: Path) -> None:
     processed_dir = data_dir / "processed"
@@ -17,6 +19,7 @@ def _ensure_processed_data(data_dir: Path) -> None:
 
 
 def test_processed_train_split_is_normalized():
+    logger.info("test_processed_train_split_is_normalized")
     data_dir = Path("data")
     _ensure_processed_data(data_dir)
 
@@ -41,6 +44,7 @@ def test_processed_train_split_is_normalized():
 
 
 def test_dataset_handles_single_target_attribute():
+    logger.info("test_dataset_handles_single_target_attribute")
     data_dir = Path("data")
     _ensure_processed_data(data_dir)
     dataset = DiabetesHealthDataset(data_dir, target_attributes="diagnosed_diabetes")
@@ -54,6 +58,7 @@ def test_dataset_handles_single_target_attribute():
 
 
 def test_dataset_handles_multiple_target_attributes():
+    logger.info("test_dataset_handles_multiple_target_attributes")
     data_dir = Path("data")
     _ensure_processed_data(data_dir)
     target_attributes = ["diabetes_risk_score", "diagnosed_diabetes"]
@@ -66,6 +71,7 @@ def test_dataset_handles_multiple_target_attributes():
 
 
 def test_dataset_respects_split_sizes():
+    logger.info("test_dataset_respects_split_sizes")
     data_dir = Path("data")
     _ensure_processed_data(data_dir)
     val_split = 0.15
@@ -89,6 +95,7 @@ def test_dataset_respects_split_sizes():
 
 
 def test_dataset_allows_feature_subset():
+    logger.info("test_dataset_allows_feature_subset")
     data_dir = Path("data")
     _ensure_processed_data(data_dir)
     feature_attributes = ["age", "bmi", "gender"]
@@ -131,6 +138,7 @@ def test_dataset_allows_feature_subset():
 
 @pytest.mark.download
 def test_prepare_data_downloads_and_processes(tmp_path: Path):
+    logger.info("test_prepare_data_downloads_and_processes")
     data_dir = tmp_path / "data"
     data_dir.mkdir()
 
