@@ -37,5 +37,5 @@ jobs:
 
       - name: Run tests & coverage
         run: |
-          uv run coverage run -m pytest -m "not download" tests/
+          uv run coverage run -m pytest -vv -s --log-cli-level=DEBUG tests/
           uv run coverage report -m
