@@ -7,6 +7,7 @@ def train():
     model = Model()
     # add rest of your training code here
     print("PLACEHOLDER: the training started...")
+    print("Temporary to pass ruff workflow", dataset, model)
 
 
 if __name__ == "__main__":
