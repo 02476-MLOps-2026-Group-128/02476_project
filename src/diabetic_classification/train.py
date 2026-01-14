@@ -80,8 +80,11 @@ def train(
 
     if data.target_columns is None:
         raise RuntimeError("Target columns were not resolved during dataset setup.")
+    if data.train_dataset is None:
+        raise RuntimeError("Training dataset was not prepared during setup.")
 
     model = DiabetesClassifier(
+        input_dim=data.train_dataset.features.shape[1],
         lr=lr,
         weight_decay=weight_decay,
         output_dim=len(data.target_columns),
