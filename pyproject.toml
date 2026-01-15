@@ -64,3 +64,19 @@ line-length = 120
 
 [tool.coverage.run]
 omit = ["tests/*", "tmp/*", "*/_remote_module_non_scriptable.py"]
+
+[tool.mypy]
+python_version = "3.12"
+ignore_missing_imports = false
+
+[[tool.mypy.overrides]]
+module = "kagglehub"
+ignore_missing_imports = true
+
+[[tool.mypy.overrides]]
+module = "pyarrow"
+ignore_missing_imports = true
+
+[[tool.mypy.overrides]]
+module = "sklearn"
+ignore_missing_imports = true
