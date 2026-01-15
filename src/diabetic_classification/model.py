@@ -109,8 +109,8 @@ class DiabetesClassifier(LightningModule):
         loss = self.loss_fn(logits, y.float())
         probs = torch.sigmoid(logits)
         acc = (probs > 0.5).eq(y > 0.5).float().mean()
-        self.log(f"{stage}/loss", loss, on_step=False, on_epoch=True, prog_bar=True)
-        self.log(f"{stage}/acc", acc, on_step=False, on_epoch=True, prog_bar=True)
+        self.log(f"{stage}_loss", loss, on_step=False, on_epoch=True, prog_bar=True)
+        self.log(f"{stage}_acc", acc, on_step=False, on_epoch=True, prog_bar=True)
         return loss
 
     def training_step(self, batch: tuple[torch.Tensor, torch.Tensor], batch_idx: int) -> torch.Tensor:

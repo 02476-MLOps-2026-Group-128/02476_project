@@ -134,6 +134,7 @@ Key args:
 - --data-dir (default: data/)
 - --target-attributes (default: diagnosed_diabetes)
 - --feature-attributes (comma-separated)
+- --exclude-feature-attributes (comma-separated; feature columns to exclude)
 - --max-epochs (default: 5)
 - --batch-size (default: 256)
 
