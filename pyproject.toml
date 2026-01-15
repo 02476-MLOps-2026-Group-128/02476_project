@@ -43,6 +43,7 @@ dev = [
     "mkdocstrings-python==1.12.2",
     "ipykernel>=7.1.0",
     "mypy>=1.19.1",
+    "pandas-stubs>=2.3.3.260113",
 ]
 
 
