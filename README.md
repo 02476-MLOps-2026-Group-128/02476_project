@@ -125,3 +125,18 @@ checklist for the exam. The parenthesis at the end indicates what module the bul
 * [ ] Create an architectural diagram over your MLOps pipeline
 * [ ] Make sure all group members have an understanding about all parts of the project
 * [ ] Uploaded all your code to GitHub
+
+
+## Training
+Run: uv run python -m diabetic_classification.train
+
+Key args:
+- --data-dir (default: data/)
+- --target-attributes (default: diagnosed_diabetes)
+- --feature-attributes (comma-separated)
+- --exclude-feature-attributes (comma-separated; feature columns to exclude)
+- --max-epochs (default: 5)
+- --batch-size (default: 256)
+
+Example:
+uv run python -m diabetic_classification.train --exclude-feature-attributes "diabetes_stage_no_diabetes,diabetes_stage_pre-diabetes,diabetes_stage_type_1,diabetes_stage_type_2"
