@@ -183,3 +183,6 @@ diabetes_dataset.csv
 # PyTorch Lightning
 lightning_logs/
 *.ckpt
+
+# Weights & Biases
+wandb/

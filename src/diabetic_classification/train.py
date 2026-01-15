@@ -4,9 +4,12 @@ from pathlib import Path
 
 import pytorch_lightning as pl
 import typer
+import wandb
 
 from diabetic_classification.data import DiabetesHealthDataset
 from diabetic_classification.model import DiabetesClassifier
+from pytorch_lightning.callbacks import ModelCheckpoint
+from pytorch_lightning.loggers import WandbLogger
 
 DEFAULT_DATA_DIR = Path(__file__).resolve().parents[2] / "data"
 
@@ -89,10 +92,25 @@ def train(
         weight_decay=weight_decay,
         output_dim=len(data.target_columns),
     )
+    wandb_logger = WandbLogger(project="Diatech", entity="vojtadeconinck-danmarks-tekniske-universitet-dtu", name="diabetes-mlp", log_model=True)
+    wandb_logger.experiment.config.update(
+        {
+            "lr": lr,
+            "batch_size": batch_size,
+            "max_epochs": max_epochs,
+            "target_attributes": parsed_targets,
+            "feature_attributes": parsed_features,
+            "exclude_feature_attributes": parsed_excludes,
+        }
+    )
+    checkpoint_callback = ModelCheckpoint(dirpath="models", monitor="val/loss", mode="min")
+
     trainer = pl.Trainer(
         max_epochs=max_epochs,
         deterministic=True,
         log_every_n_steps=50,
+        logger=wandb_logger,
+        callbacks=[checkpoint_callback],
     )
     trainer.fit(model, datamodule=data)
     trainer.test(model, datamodule=data)

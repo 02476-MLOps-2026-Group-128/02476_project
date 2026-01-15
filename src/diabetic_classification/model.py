@@ -1,6 +1,8 @@
 from __future__ import annotations
 
 import torch
+import wandb
+
 from pytorch_lightning import LightningModule
 from torch import nn
 
@@ -88,7 +90,7 @@ class DiabetesClassifier(LightningModule):
         """
         return self.model(x)
 
-    def _shared_step(self, batch: tuple[torch.Tensor, torch.Tensor], stage: str) -> torch.Tensor:
+    def _shared_step(self, batch: tuple[torch.Tensor, torch.Tensor], batch_idx: int, stage: str) -> torch.Tensor:
         """Compute loss and log metrics for a training stage.
 
         Args:
@@ -109,21 +111,30 @@ class DiabetesClassifier(LightningModule):
         loss = self.loss_fn(logits, y.float())
         probs = torch.sigmoid(logits)
         acc = (probs > 0.5).eq(y > 0.5).float().mean()
+        
+        log_on_step = stage == "train"
         self.log(f"{stage}/loss", loss, on_step=False, on_epoch=True, prog_bar=True)
         self.log(f"{stage}/acc", acc, on_step=False, on_epoch=True, prog_bar=True)
+        
+        if self.logger is not None and hasattr(self.logger, "experiment"):
+            if log_on_step and batch_idx == 0:
+                self.logger.experiment.log(
+                    {"logits_hist": wandb.Histogram(logits.detach().cpu())},
+                    step=self.global_step,
+                )
         return loss
 
     def training_step(self, batch: tuple[torch.Tensor, torch.Tensor], batch_idx: int) -> torch.Tensor:
         """Lightning training step."""
-        return self._shared_step(batch, "train")
+        return self._shared_step(batch, batch_idx, "train")
 
     def validation_step(self, batch: tuple[torch.Tensor, torch.Tensor], batch_idx: int) -> None:
         """Lightning validation step."""
-        self._shared_step(batch, "val")
+        self._shared_step(batch, batch_idx, "val")
 
     def test_step(self, batch: tuple[torch.Tensor, torch.Tensor], batch_idx: int) -> None:
         """Lightning test step."""
-        self._shared_step(batch, "test")
+        self._shared_step(batch, batch_idx, "test")
 
     def configure_optimizers(self) -> torch.optim.Optimizer:
         """Configure the optimizer."""
