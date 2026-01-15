@@ -3,10 +3,10 @@ from pathlib import Path
 import numpy as np
 import pandas as pd
 import pytest
-from sklearn.model_selection import train_test_split
-
 from diabetic_classification import constants
 from diabetic_classification.data import DiabetesHealthDataset
+from sklearn.model_selection import train_test_split
+
 from tests import _DATA_PATH, _PROCESSED_DATA_PATH
 
 
@@ -26,7 +26,7 @@ def test_processed_train_split_is_normalized():
         column
         for column in train_df.columns
         if not any(token in column for token in DiabetesHealthDataset.POSSIBLE_TARGET_ATTRIBUTES)
-        and not any(token in column for token in DiabetesHealthDataset.CATEGORICAL_ATTRIBUTES)
+           and not any(token in column for token in DiabetesHealthDataset.CATEGORICAL_ATTRIBUTES)
     ]
 
     assert numeric_columns, "Expected at least one numerical feature column after preprocessing."
@@ -142,8 +142,9 @@ def test_dataset_excludes_feature_attributes():
         excluded_columns.update(dataset._resolve_columns(train_df.columns, attribute))
 
     assert dataset.feature_columns is not None
-    assert set(dataset.feature_columns).isdisjoint(excluded_columns), "Excluded columns should not appear in feature_columns"
-    
+    assert set(dataset.feature_columns).isdisjoint(
+        excluded_columns), "Excluded columns should not appear in feature_columns"
+
 
 @pytest.mark.download
 def test_prepare_data_downloads_and_processes(tmp_path: Path):

@@ -13,7 +13,6 @@ from pytorch_lightning import LightningDataModule
 from sklearn.model_selection import train_test_split
 from torch.utils.data import DataLoader, Dataset
 
-
 from diabetic_classification import constants
 
 ColumnSequence: TypeAlias = Sequence[str] | pd.Index
@@ -23,14 +22,16 @@ class DiabetesTabularDataset(Dataset):
     """Torch dataset that wraps tabular diabetes data."""
 
     def __init__(
-        self,
-        data: pd.DataFrame,
-        target_attributes: Sequence[str],
-        feature_columns: Optional[Sequence[str]] = None,
+            self,
+            data: pd.DataFrame,
+            target_attributes: Sequence[str],
+            feature_columns: Optional[Sequence[str]] = None,
     ) -> None:
-        """Initialize tensors for features and labels.
+        """
+        Initialize tensors for features and labels.
 
         Args:
+        ----
             data: Preprocessed pandas DataFrame containing one data split.
             target_attributes: Attribute names that should be treated as the supervised target.
             feature_columns: Optional explicit feature column selection to retain.
@@ -74,7 +75,8 @@ class DiabetesTabularDataset(Dataset):
 
 
 class DiabetesHealthDataset(LightningDataModule):
-    """End-to-end data manager for the Diabetes Health Indicators dataset.
+    """
+    End-to-end data manager for the Diabetes Health Indicators dataset.
 
     The module downloads the Kaggle dataset when needed, performs one-hot encoding,
     normalizes numerical features, persists processed CSV splits, and exposes
@@ -84,6 +86,7 @@ class DiabetesHealthDataset(LightningDataModule):
     preprocessing pipeline.
 
     Example:
+    -------
         >>> from pathlib import Path
         >>> dm = DiabetesHealthDataset(
         ...     data_dir=Path("data"),
@@ -157,19 +160,21 @@ class DiabetesHealthDataset(LightningDataModule):
     ]
 
     def __init__(
-        self,
-        data_dir: Path | str,
-        batch_size: int = 64,
-        num_workers: int = 0,
-        pin_memory: bool = False,
-        val_split: float = 0.1,
-        target_attributes: Sequence[str] | str = "diagnosed_diabetes",
-        feature_attributes: Sequence[str] | str | None = None,
-        exclude_feature_attributes: Sequence[str] | str | None = None,
+            self,
+            data_dir: Path | str,
+            batch_size: int = 64,
+            num_workers: int = 0,
+            pin_memory: bool = False,
+            val_split: float = 0.1,
+            target_attributes: Sequence[str] | str = "diagnosed_diabetes",
+            feature_attributes: Sequence[str] | str | None = None,
+            exclude_feature_attributes: Sequence[str] | str | None = None,
     ) -> None:
-        """Initialize data module configuration.
+        """
+        Initialize data module configuration.
 
         Args:
+        ----
             data_dir: Path to the root data directory (containing raw/processed folders).
             batch_size: Batch size shared across all dataloaders.
             num_workers: Number of workers to use in each dataloader.
@@ -212,7 +217,7 @@ class DiabetesHealthDataset(LightningDataModule):
         logger.info("Finished preparing processed data under {}", processed_dir)
 
     def setup(self, stage: Optional[str] = None) -> None:
-        """Setup datasets for the requested Lightning stage."""
+        """Set up datasets for the requested Lightning stage."""
         self._ensure_processed_data()
 
         if stage in (None, "fit", "validate"):
@@ -297,9 +302,11 @@ class DiabetesHealthDataset(LightningDataModule):
         )
 
     def preprocess(self, output_folder: Optional[Path] = None) -> None:
-        """Run preprocessing using the configured directories.
+        """
+        Run preprocessing using the configured directories.
 
         Args:
+        ----
             output_folder: Optional override for the processed data directory.
         """
         raw_dir = self.data_dir / "raw"
@@ -348,7 +355,7 @@ class DiabetesHealthDataset(LightningDataModule):
         logger.info("Completed download and extracted files to {}", dest_path)
 
     def __preprocess_data(
-        self, raw_data_dir: Path = Path("data/raw"), output_folder: Path = Path("data/processed")
+            self, raw_data_dir: Path = Path("data/raw"), output_folder: Path = Path("data/processed")
     ) -> None:
         """Preprocess the raw data and save it to the output folder."""
         logger.info("Preprocessing raw data from {} into {}", raw_data_dir, output_folder)
@@ -380,7 +387,7 @@ class DiabetesHealthDataset(LightningDataModule):
             col
             for col in train_df.columns
             if not any(class_col in col for class_col in self.POSSIBLE_TARGET_ATTRIBUTES)
-            and not any(cat_col in col for cat_col in self.CATEGORICAL_ATTRIBUTES)
+               and not any(cat_col in col for cat_col in self.CATEGORICAL_ATTRIBUTES)
         ]
 
         if numerical_feature_columns:
@@ -447,7 +454,7 @@ class DiabetesHealthDataset(LightningDataModule):
         return attributes
 
     def _normalize_exclude_feature_attributes(
-        self, exclude_feature_attributes: Sequence[str] | str | None
+            self, exclude_feature_attributes: Sequence[str] | str | None
     ) -> Optional[list[str]]:
         """Normalize optional excluded attribute input."""
         if exclude_feature_attributes is None:
@@ -523,7 +530,7 @@ class DiabetesHealthDataset(LightningDataModule):
         return self.target_columns
 
     def _build_stratify_series(
-        self, df: pd.DataFrame, attributes: Optional[Sequence[str]] = None
+            self, df: pd.DataFrame, attributes: Optional[Sequence[str]] = None
     ) -> Optional[pd.Series]:
         """Return a 1D series for stratified splitting or None if not applicable."""
         attributes = [attr for attr in (attributes or []) if attr]
@@ -588,9 +595,11 @@ class DiabetesHealthDataset(LightningDataModule):
 
 
 def prepare_dataset(data_path: Path) -> None:
-    """CLI helper to prepare raw data into processed splits.
+    """
+    CLI helper to prepare raw data into processed splits.
 
     Args:
+    ----
         data_path: Base directory that contains the raw subfolder.
     """
     logger.info("Preparing data via CLI for base path {}", data_path)

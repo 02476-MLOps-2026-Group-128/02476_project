@@ -4,15 +4,17 @@ from datetime import datetime
 from pathlib import Path
 
 import pytorch_lightning as pl
-from pytorch_lightning.callbacks import ModelCheckpoint
 import typer
+from pytorch_lightning.callbacks import ModelCheckpoint
 
 from diabetic_classification.data import DiabetesHealthDataset
 from diabetic_classification.model import DiabetesClassifier
 
 DEFAULT_DATA_DIR = Path(__file__).resolve().parents[2] / "data"
 
+
 def csv_list(value: str | None) -> list[str] | None:
+    """Parse a comma-separated string into a list of strings."""
     if value is None:
         return None
     items = [item.strip() for item in value.split(",") if item.strip()]
@@ -20,38 +22,41 @@ def csv_list(value: str | None) -> list[str] | None:
         raise typer.BadParameter("Provide at least one non-blank value.")
     return items
 
+
 def train(
-    data_dir: Path = DEFAULT_DATA_DIR,
-    target_attributes: str = typer.Option(
-        "diagnosed_diabetes",
-        "--targets",
-        metavar="a,b,c",
-        help="Comma-separated target attribute name(s).",
-    ),
-    feature_attributes: str | None = typer.Option(
-        None,
-        "--feature-attributes",
-        metavar="a,b,c",
-        help="Comma-separated feature attributes.",
-    ),
-    exclude_feature_attributes: str | None = typer.Option(
-        None,
-        "--exclude-feature-attributes",
-        metavar="a,b,c",
-        help="Comma-separated features to remove.",
-    ),
-    batch_size: int = 256,
-    max_epochs: int = 5,
-    lr: float = 1e-3,
-    weight_decay: float = 1e-4,
-    num_workers: int = 0,
-    val_split: float = 0.1,
-    seed: int = 42,
-    models_dir: Path = Path("models"),
+        data_dir: Path = DEFAULT_DATA_DIR,
+        target_attributes: str = typer.Option(
+            "diagnosed_diabetes",
+            "--targets",
+            metavar="a,b,c",
+            help="Comma-separated target attribute name(s).",
+        ),
+        feature_attributes: str | None = typer.Option(
+            None,
+            "--feature-attributes",
+            metavar="a,b,c",
+            help="Comma-separated feature attributes.",
+        ),
+        exclude_feature_attributes: str | None = typer.Option(
+            None,
+            "--exclude-feature-attributes",
+            metavar="a,b,c",
+            help="Comma-separated features to remove.",
+        ),
+        batch_size: int = 256,
+        max_epochs: int = 5,
+        lr: float = 1e-3,
+        weight_decay: float = 1e-4,
+        num_workers: int = 0,
+        val_split: float = 0.1,
+        seed: int = 42,
+        models_dir: Path = Path("models"),
 ) -> None:
-    """Train the diabetes classifier with PyTorch Lightning.
+    """
+    Train the diabetes classifier with PyTorch Lightning.
 
     Args:
+    ----
         data_dir: Base data directory (contains raw/processed subfolders).
         target_attributes: Target attribute name(s), comma-separated for multiple.
         feature_attributes: Feature attribute name(s), comma-separated for multiple.
@@ -63,6 +68,7 @@ def train(
         num_workers: DataLoader worker count.
         val_split: Fraction of training data reserved for validation.
         seed: Random seed for reproducibility.
+        models_dir: Directory to save trained models.
     """
     pl.seed_everything(seed, workers=True)
 
@@ -70,7 +76,7 @@ def train(
     if not parsed_targets:
         raise typer.BadParameter("Specify at least one target attribute.")
     normalized_targets: list[str] | str = parsed_targets if len(parsed_targets) > 1 \
-                                            else parsed_targets[0]
+        else parsed_targets[0]
 
     parsed_features = csv_list(feature_attributes)
     parsed_excludes = csv_list(exclude_feature_attributes)
@@ -78,8 +84,7 @@ def train(
     timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
     model_dir = models_dir / timestamp
     model_dir.mkdir(parents=True, exist_ok=True)
-    
-    
+
     data = DiabetesHealthDataset(
         data_dir=data_dir,
         batch_size=batch_size,
