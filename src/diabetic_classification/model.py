@@ -68,6 +68,8 @@ class DiabetesClassifier(LightningModule):
         dropout: float = 0.2,
     ) -> None:
         super().__init__()
+        self.lr = lr
+        self.weight_decay = weight_decay
         self.save_hyperparameters()
         self.model = TabularMLP(
             input_dim=input_dim,
@@ -129,6 +131,6 @@ class DiabetesClassifier(LightningModule):
         """Configure the optimizer."""
         return torch.optim.Adam(
             self.parameters(),
-            lr=self.hparams.lr,
-            weight_decay=self.hparams.weight_decay,
+            lr=self.lr,
+            weight_decay=self.weight_decay,
         )
