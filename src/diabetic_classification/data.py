@@ -459,8 +459,6 @@ class DiabetesHealthDataset(LightningDataModule):
             attributes = list(exclude_feature_attributes)
 
         attributes = [attr for attr in attributes if attr]
-        if not attributes:
-            raise ValueError("exclude_feature_attributes must contain at least one attribute name when provided.")
 
         return attributes
 

@@ -1,0 +1,2 @@
+# Path to project root
+project_root: ${oc.env:PROJECT_ROOT, ${hydra:runtime.cwd}}
