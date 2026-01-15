@@ -5,7 +5,6 @@ from pathlib import Path
 
 import pytorch_lightning as pl
 from pytorch_lightning.callbacks import ModelCheckpoint
-import torch
 import typer
 
 from diabetic_classification.data import DiabetesHealthDataset
@@ -103,6 +102,7 @@ def train(
         weight_decay=weight_decay,
         output_dim=len(data.target_columns),
     )
+
     trainer = pl.Trainer(
         max_epochs=max_epochs,
         default_root_dir=models_dir,
