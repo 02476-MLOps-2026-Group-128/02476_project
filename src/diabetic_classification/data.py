@@ -1,7 +1,7 @@
 import os
 import shutil
 from pathlib import Path
-from typing import Optional, Sequence, Tuple
+from typing import Optional, Sequence, Tuple, TypeAlias
 
 import kagglehub
 import pandas as pd
@@ -15,6 +15,8 @@ from torch.utils.data import DataLoader, Dataset
 
 
 from diabetic_classification import constants
+
+ColumnSequence: TypeAlias = Sequence[str] | pd.Index
 
 
 class DiabetesTabularDataset(Dataset):
@@ -440,7 +442,7 @@ class DiabetesHealthDataset(LightningDataModule):
         categorical = set(self.CATEGORICAL_TARGET_ATTRIBUTES)
         return [attr for attr in self.target_attributes if attr in categorical]
 
-    def _resolve_feature_columns(self, available_columns: Sequence[str], target_columns: Sequence[str]) -> list[str]:
+    def _resolve_feature_columns(self, available_columns: ColumnSequence, target_columns: Sequence[str]) -> list[str]:
         """Resolve the concrete feature columns retained for model inputs."""
         if self.feature_columns is not None:
             return self.feature_columns
@@ -460,19 +462,18 @@ class DiabetesHealthDataset(LightningDataModule):
         if not features:
             raise ValueError("Feature attribute selection removed all available feature columns.")
 
-        seen: set[str] = set()
-        self.feature_columns = [column for column in features if not (column in seen or seen.add(column))]
+        # Preserve deterministic ordering while removing duplicates.
+        self.feature_columns = list(dict.fromkeys(features))
         return self.feature_columns
 
-    def _ensure_target_columns(self, available_columns: Sequence[str]) -> list[str]:
+    def _ensure_target_columns(self, available_columns: ColumnSequence) -> list[str]:
         """Resolve and cache the concrete target columns present in the data."""
         if self.target_columns is None:
             resolved: list[str] = []
             for attribute in self.target_attributes:
                 resolved.extend(self._resolve_columns(available_columns, attribute))
             # Preserve order but drop duplicates
-            seen: set[str] = set()
-            self.target_columns = [col for col in resolved if not (col in seen or seen.add(col))]
+            self.target_columns = list(dict.fromkeys(resolved))
         return self.target_columns
 
     def _build_stratify_series(
@@ -504,7 +505,7 @@ class DiabetesHealthDataset(LightningDataModule):
         )
         return combined
 
-    def _resolve_columns(self, available_columns: Sequence[str], attribute: str) -> list[str]:
+    def _resolve_columns(self, available_columns: ColumnSequence, attribute: str) -> list[str]:
         """Map an attribute name to the actual encoded columns in the dataframe."""
         normalized_attribute = self._normalize_attribute_name(attribute)
         column_lookup = {self._normalize_attribute_name(column_name): column_name for column_name in available_columns}
