@@ -182,3 +182,7 @@ data/
 # PyTorch Lightning
 lightning_logs/
 *.ckpt
+
+# Model files
+*.pt
+*.pth
