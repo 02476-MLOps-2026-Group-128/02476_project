@@ -18,11 +18,11 @@ class TabularMLP(nn.Module):
     """
 
     def __init__(
-            self,
-            input_dim: int,
-            hidden_dims: tuple[int, int] = (128, 64),
-            dropout: float = 0.2,
-            output_dim: int = 1,
+        self,
+        input_dim: int,
+        hidden_dims: tuple[int, ...] = (128, 64),
+        dropout: float = 0.2,
+        output_dim: int = 1,
     ) -> None:
         super().__init__()
         layers: list[nn.Module] = []
@@ -66,13 +66,14 @@ class DiabetesClassifier(LightningModule):
     """
 
     def __init__(
-            self,
-            input_dim: int,
-            lr: float = 1e-3,
-            weight_decay: float = 1e-4,
-            output_dim: int = 1,
-            hidden_dims: tuple[int, int] = (128, 64),
-            dropout: float = 0.2,
+        self,
+        input_dim: int,
+        lr: float = 1e-3,
+        weight_decay: float = 1e-4,
+        output_dim: int = 1,
+        hidden_dims: tuple[int, int] = (128, 64),
+        dropout: float = 0.2,
+        pos_weight: torch.Tensor | None = None,
     ) -> None:
         super().__init__()
         self.lr = lr
@@ -84,7 +85,13 @@ class DiabetesClassifier(LightningModule):
             dropout=dropout,
             output_dim=output_dim,
         )
-        self.loss_fn = nn.BCEWithLogitsLoss()
+        weight_tensor: torch.Tensor | None = None
+        if pos_weight is not None:
+            weight_tensor = torch.as_tensor(pos_weight, dtype=torch.float32)
+            if weight_tensor.ndim == 0:
+                weight_tensor = weight_tensor.unsqueeze(0)
+        self.register_buffer("pos_weight", weight_tensor)
+        self.loss_fn = nn.BCEWithLogitsLoss(pos_weight=self.pos_weight)
 
     def forward(self, x: torch.Tensor) -> torch.Tensor:
         """

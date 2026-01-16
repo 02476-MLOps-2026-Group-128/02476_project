@@ -37,23 +37,28 @@ class DiabetesTabularDataset(Dataset):
             feature_columns: Optional explicit feature column selection to retain.
         """
         if not target_attributes:
-            raise ValueError("target_attributes must contain at least one column name.")
+            raise ValueError(
+                "target_attributes must contain at least one column name.")
 
         missing_columns = set(target_attributes) - set(data.columns)
         if missing_columns:
-            raise ValueError(f"Target attributes {missing_columns} not present in the provided DataFrame.")
+            raise ValueError(
+                f"Target attributes {missing_columns} not present in the provided DataFrame.")
 
         if feature_columns is not None:
             if not feature_columns:
-                raise ValueError("feature_columns must contain at least one column when provided.")
+                raise ValueError(
+                    "feature_columns must contain at least one column when provided.")
             missing_features = set(feature_columns) - set(data.columns)
             if missing_features:
-                raise ValueError(f"Feature columns {missing_features} not present in the provided DataFrame.")
+                raise ValueError(
+                    f"Feature columns {missing_features} not present in the provided DataFrame.")
             feature_frame = data[list(feature_columns)]
         else:
             feature_frame = data.drop(columns=list(target_attributes))
             if feature_frame.empty:
-                raise ValueError("No feature columns remain after dropping targets.")
+                raise ValueError(
+                    "No feature columns remain after dropping targets.")
 
         features = feature_frame.to_numpy(dtype="float32")
         target = data[list(target_attributes)].to_numpy(dtype="float32")
@@ -99,7 +104,13 @@ class DiabetesHealthDataset(LightningDataModule):
     """
 
     KAGGLE_DS_NAME: str = "mohankrishnathalla/diabetes-health-indicators-dataset"
-    POSSIBLE_TARGET_ATTRIBUTES: list[str] = ["diabetes_risk_score", "diagnosed_diabetes", "diabetes_stage"]
+    POSSIBLE_TARGET_ATTRIBUTES: list[str] = [
+        "diabetes_risk_score",
+        "diagnosed_diabetes",
+        "diabetes_stage",
+        "glucose_fasting",
+        "hba1c"
+    ]
     CATEGORICAL_ATTRIBUTES: list[str] = [
         "gender",
         "ethnicity",
@@ -109,7 +120,8 @@ class DiabetesHealthDataset(LightningDataModule):
         "smoking_status",
         "diabetes_stage",
     ]
-    CATEGORICAL_TARGET_ATTRIBUTES: list[str] = ["diagnosed_diabetes", "diabetes_stage"]
+    CATEGORICAL_TARGET_ATTRIBUTES: list[str] = [
+        "diagnosed_diabetes", "diabetes_stage"]
     PROCESSED_COLUMNS: list[str] = [
         "age",
         "alcohol_consumption_per_week",
@@ -135,24 +147,31 @@ class DiabetesHealthDataset(LightningDataModule):
         "hba1c",
         "diabetes_risk_score",
         "diagnosed_diabetes",
+        "gender_female",
         "gender_male",
         "gender_other",
+        "ethnicity_asian",
         "ethnicity_black",
         "ethnicity_hispanic",
         "ethnicity_other",
         "ethnicity_white",
+        "education_level_graduate",
         "education_level_highschool",
         "education_level_no_formal",
         "education_level_postgraduate",
+        "income_level_high",
         "income_level_low",
         "income_level_lower-middle",
         "income_level_middle",
         "income_level_upper-middle",
+        "employment_status_employed",
         "employment_status_retired",
         "employment_status_student",
         "employment_status_unemployed",
+        "smoking_status_current",
         "smoking_status_former",
         "smoking_status_never",
+        "diabetes_stage_gestational",
         "diabetes_stage_no_diabetes",
         "diabetes_stage_pre-diabetes",
         "diabetes_stage_type_1",
@@ -190,15 +209,19 @@ class DiabetesHealthDataset(LightningDataModule):
             raise ValueError("val_split must be between 0 and 1.")
 
         data_path = Path(data_dir)
-        self.data_dir = data_path.parent if data_path.name in {"raw", "processed"} else data_path
+        self.data_dir = data_path.parent if data_path.name in {
+            "raw", "processed"} else data_path
 
         self.batch_size = batch_size
         self.num_workers = num_workers
         self.pin_memory = pin_memory
         self.val_split = val_split
-        self.target_attributes = self._normalize_target_attributes(target_attributes)
-        self.feature_attributes = self._normalize_feature_attributes(feature_attributes)
-        self.exclude_feature_attributes = self._normalize_exclude_feature_attributes(exclude_feature_attributes)
+        self.target_attributes = self._normalize_target_attributes(
+            target_attributes)
+        self.feature_attributes = self._normalize_feature_attributes(
+            feature_attributes)
+        self.exclude_feature_attributes = self._normalize_exclude_feature_attributes(
+            exclude_feature_attributes)
         self.stratification_attributes = self._derive_stratification_attributes()
 
         self.train_dataset: Optional[DiabetesTabularDataset] = None
@@ -214,7 +237,8 @@ class DiabetesHealthDataset(LightningDataModule):
         logger.info("Preparing dataset artifacts in {}", self.data_dir)
         self.__download_data(raw_dir)
         self.__preprocess_data(raw_dir, processed_dir)
-        logger.info("Finished preparing processed data under {}", processed_dir)
+        logger.info("Finished preparing processed data under {}",
+                    processed_dir)
 
     def setup(self, stage: Optional[str] = None) -> None:
         """Set up datasets for the requested Lightning stage."""
@@ -227,9 +251,12 @@ class DiabetesHealthDataset(LightningDataModule):
                     self.val_split,
                 )
                 train_source_df = self._load_split("train_data.csv")
-                target_columns = self._ensure_target_columns(train_source_df.columns)
-                feature_columns = self._resolve_feature_columns(train_source_df.columns, target_columns)
-                stratify_series = self._build_stratify_series(train_source_df, self.stratification_attributes)
+                target_columns = self._ensure_target_columns(
+                    train_source_df.columns)
+                feature_columns = self._resolve_feature_columns(
+                    train_source_df.columns, target_columns)
+                stratify_series = self._build_stratify_series(
+                    train_source_df, self.stratification_attributes)
 
                 train_df, val_df = train_test_split(
                     train_source_df,
@@ -238,21 +265,26 @@ class DiabetesHealthDataset(LightningDataModule):
                     stratify=stratify_series,
                 )
 
-                self.train_dataset = DiabetesTabularDataset(train_df, target_columns, feature_columns)
-                self.val_dataset = DiabetesTabularDataset(val_df, target_columns, feature_columns)
+                self.train_dataset = DiabetesTabularDataset(
+                    train_df, target_columns, feature_columns)
+                self.val_dataset = DiabetesTabularDataset(
+                    val_df, target_columns, feature_columns)
 
         if stage in (None, "test", "predict") and self.test_dataset is None:
             dataset_label = "test" if stage in (None, "test") else "predict"
             logger.info("Configuring {} dataset", dataset_label)
             test_df = self._load_split("test_data.csv")
             target_columns = self._ensure_target_columns(test_df.columns)
-            feature_columns = self._resolve_feature_columns(test_df.columns, target_columns)
-            self.test_dataset = DiabetesTabularDataset(test_df, target_columns, feature_columns)
+            feature_columns = self._resolve_feature_columns(
+                test_df.columns, target_columns)
+            self.test_dataset = DiabetesTabularDataset(
+                test_df, target_columns, feature_columns)
 
     def train_dataloader(self) -> DataLoader:
         """Return the training dataloader."""
         if self.train_dataset is None:
-            raise RuntimeError("Call setup('fit') before requesting the train dataloader.")
+            raise RuntimeError(
+                "Call setup('fit') before requesting the train dataloader.")
 
         return DataLoader(
             self.train_dataset,
@@ -265,7 +297,8 @@ class DiabetesHealthDataset(LightningDataModule):
     def val_dataloader(self) -> DataLoader:
         """Return the validation dataloader."""
         if self.val_dataset is None:
-            raise RuntimeError("Call setup('fit') before requesting the validation dataloader.")
+            raise RuntimeError(
+                "Call setup('fit') before requesting the validation dataloader.")
 
         return DataLoader(
             self.val_dataset,
@@ -278,7 +311,8 @@ class DiabetesHealthDataset(LightningDataModule):
     def test_dataloader(self) -> DataLoader:
         """Return the test dataloader."""
         if self.test_dataset is None:
-            raise RuntimeError("Call setup('test') before requesting the test dataloader.")
+            raise RuntimeError(
+                "Call setup('test') before requesting the test dataloader.")
 
         return DataLoader(
             self.test_dataset,
@@ -291,7 +325,8 @@ class DiabetesHealthDataset(LightningDataModule):
     def predict_dataloader(self) -> DataLoader:
         """Return the prediction dataloader (mirrors the test loader)."""
         if self.test_dataset is None:
-            raise RuntimeError("Call setup('predict') before requesting the prediction dataloader.")
+            raise RuntimeError(
+                "Call setup('predict') before requesting the prediction dataloader.")
 
         return DataLoader(
             self.test_dataset,
@@ -316,13 +351,16 @@ class DiabetesHealthDataset(LightningDataModule):
     def select_features(self, feature_attributes: Sequence[str] | str | None) -> None:
         """Update the feature subset used when constructing datasets."""
         logger.info("Updating feature selection to {}", feature_attributes)
-        self.feature_attributes = self._normalize_feature_attributes(feature_attributes)
+        self.feature_attributes = self._normalize_feature_attributes(
+            feature_attributes)
         self.feature_columns = None
 
     def exclude_features(self, exclude_feature_attributes: Sequence[str] | str | None) -> None:
         """Update the excluded feature subset used when constructing datasets."""
-        logger.info("Updating excluded feature selection to {}", exclude_feature_attributes)
-        self.exclude_feature_attributes = self._normalize_exclude_feature_attributes(exclude_feature_attributes)
+        logger.info("Updating excluded feature selection to {}",
+                    exclude_feature_attributes)
+        self.exclude_feature_attributes = self._normalize_exclude_feature_attributes(
+            exclude_feature_attributes)
         self.feature_columns = None
 
     def __len__(self) -> int:
@@ -334,45 +372,53 @@ class DiabetesHealthDataset(LightningDataModule):
     def __getitem__(self, index: int) -> Tuple[torch.Tensor, torch.Tensor]:
         """Delegate indexing to the underlying training dataset."""
         if self.train_dataset is None:
-            raise RuntimeError("Call setup('fit') before indexing the dataset.")
+            raise RuntimeError(
+                "Call setup('fit') before indexing the dataset.")
         return self.train_dataset[index]
 
     def __download_data(self, dest_path: Path = Path("data/raw")) -> None:
         """Download the data if it doesn't exist."""
         if dest_path.exists() and any(dest_path.iterdir()):
-            logger.info("Raw data already present at {}, skipping download.", dest_path)
+            logger.info(
+                "Raw data already present at {}, skipping download.", dest_path)
             return
 
         logger.info("Downloading '{}' to {}", self.KAGGLE_DS_NAME, dest_path)
-        cache_path = kagglehub.dataset_download(self.KAGGLE_DS_NAME, force_download=True)
+        cache_path = kagglehub.dataset_download(
+            self.KAGGLE_DS_NAME, force_download=True)
 
         # Create destination directory if it doesn't exist
         os.makedirs(dest_path, exist_ok=True)
 
         # Move all files from cache to the destination folder
         for file in os.listdir(cache_path):
-            shutil.move(os.path.join(cache_path, file), os.path.join(dest_path, file))
+            shutil.move(os.path.join(cache_path, file),
+                        os.path.join(dest_path, file))
         logger.info("Completed download and extracted files to {}", dest_path)
 
     def __preprocess_data(
             self, raw_data_dir: Path = Path("data/raw"), output_folder: Path = Path("data/processed")
     ) -> None:
         """Preprocess the raw data and save it to the output folder."""
-        logger.info("Preprocessing raw data from {} into {}", raw_data_dir, output_folder)
+        logger.info("Preprocessing raw data from {} into {}",
+                    raw_data_dir, output_folder)
         table = csv.read_csv(raw_data_dir / "diabetes_dataset.csv")
         df = table.to_pandas(self_destruct=True)
 
         # Find categorical columns
-        categorical_columns = df.select_dtypes(include=["object", "category"]).columns.tolist()
+        categorical_columns = df.select_dtypes(
+            include=["object", "category"]).columns.tolist()
 
         # One-hot encode categorical columns
-        df_encoded = pd.get_dummies(df, columns=categorical_columns, drop_first=True)
+        df_encoded = pd.get_dummies(df, columns=categorical_columns)
 
         # Fix column names by removing spaces and special characters
-        df_encoded.columns = df_encoded.columns.str.replace(" ", "_").str.lower()
+        df_encoded.columns = df_encoded.columns.str.replace(
+            " ", "_").str.lower()
 
         # Split data into train and test sets
-        stratify_series = self._build_stratify_series(df_encoded, self.stratification_attributes)
+        stratify_series = self._build_stratify_series(
+            df_encoded, self.stratification_attributes)
         train_df, test_df = train_test_split(
             df_encoded, test_size=constants.TEST_SIZE, random_state=constants.SEED, stratify=stratify_series
         )
@@ -387,21 +433,25 @@ class DiabetesHealthDataset(LightningDataModule):
             col
             for col in train_df.columns
             if not any(class_col in col for class_col in self.POSSIBLE_TARGET_ATTRIBUTES)
-               and not any(cat_col in col for cat_col in self.CATEGORICAL_ATTRIBUTES)
+            and not any(cat_col in col for cat_col in self.CATEGORICAL_ATTRIBUTES)
         ]
 
         if numerical_feature_columns:
-            logger.info("Normalizing {} numerical feature columns", len(numerical_feature_columns))
+            logger.info("Normalizing {} numerical feature columns",
+                        len(numerical_feature_columns))
             # Cast once to float32 so normalization uses consistent dtype.
             dtype_map = {col: "float32" for col in numerical_feature_columns}
             train_df = train_df.astype(dtype_map)
             test_df = test_df.astype(dtype_map)
 
             numeric_means = train_df[numerical_feature_columns].mean()
-            numeric_stds = train_df[numerical_feature_columns].std().replace(0, 1)
+            numeric_stds = train_df[numerical_feature_columns].std().replace(
+                0, 1)
 
-            train_normalized = (train_df[numerical_feature_columns] - numeric_means) / numeric_stds
-            test_normalized = (test_df[numerical_feature_columns] - numeric_means) / numeric_stds
+            train_normalized = (
+                train_df[numerical_feature_columns] - numeric_means) / numeric_stds
+            test_normalized = (
+                test_df[numerical_feature_columns] - numeric_means) / numeric_stds
 
             train_df.loc[:, numerical_feature_columns] = train_normalized
             test_df.loc[:, numerical_feature_columns] = test_normalized
@@ -414,14 +464,16 @@ class DiabetesHealthDataset(LightningDataModule):
                 }
             )
         else:
-            logger.info("No numerical feature columns detected; skipping normalization step")
+            logger.info(
+                "No numerical feature columns detected; skipping normalization step")
             std_params_df = pd.DataFrame(columns=["feature", "mean", "std"])
 
         # Save processed data
         os.makedirs(output_folder, exist_ok=True)
         train_df.to_csv(output_folder / "train_data.csv", index=False)
         test_df.to_csv(output_folder / "test_data.csv", index=False)
-        std_params_df.to_csv(output_folder / "standardization_params.csv", index=False)
+        std_params_df.to_csv(
+            output_folder / "standardization_params.csv", index=False)
         logger.info("Persisted processed splits to {}", output_folder)
 
     def _normalize_target_attributes(self, target_attributes: Sequence[str] | str) -> list[str]:
@@ -433,7 +485,8 @@ class DiabetesHealthDataset(LightningDataModule):
 
         attributes = [attr for attr in attributes if attr]
         if not attributes:
-            raise ValueError("target_attributes must contain at least one attribute name.")
+            raise ValueError(
+                "target_attributes must contain at least one attribute name.")
 
         return attributes
 
@@ -449,7 +502,8 @@ class DiabetesHealthDataset(LightningDataModule):
 
         attributes = [attr for attr in attributes if attr]
         if not attributes:
-            raise ValueError("feature_attributes must contain at least one attribute name when provided.")
+            raise ValueError(
+                "feature_attributes must contain at least one attribute name when provided.")
 
         return attributes
 
@@ -467,7 +521,8 @@ class DiabetesHealthDataset(LightningDataModule):
 
         attributes = [attr for attr in attributes if attr]
         if not attributes:
-            raise ValueError("exclude_feature_attributes must contain at least one attribute name when provided.")
+            raise ValueError(
+                "exclude_feature_attributes must contain at least one attribute name when provided.")
 
         return attributes
 
@@ -484,28 +539,37 @@ class DiabetesHealthDataset(LightningDataModule):
         exclude_columns = self._resolve_exclude_columns(available_columns)
 
         if self.feature_attributes is None:
-            features = [column for column in available_columns if column not in target_columns]
+            features = [
+                column for column in available_columns if column not in target_columns]
             if not features:
-                raise ValueError("No feature columns remain after removing targets.")
+                raise ValueError(
+                    "No feature columns remain after removing targets.")
             if exclude_columns:
-                features = [column for column in features if column not in exclude_columns]
+                features = [
+                    column for column in features if column not in exclude_columns]
                 if not features:
-                    raise ValueError("Feature exclusion removed all available feature columns.")
+                    raise ValueError(
+                        "Feature exclusion removed all available feature columns.")
             self.feature_columns = list(dict.fromkeys(features))
             return self.feature_columns
 
         resolved: list[str] = []
         for attribute in self.feature_attributes:
-            resolved.extend(self._resolve_columns(available_columns, attribute))
+            resolved.extend(self._resolve_columns(
+                available_columns, attribute))
 
-        features = [column for column in resolved if column not in target_columns]
+        features = [
+            column for column in resolved if column not in target_columns]
         if not features:
-            raise ValueError("Feature attribute selection removed all available feature columns.")
+            raise ValueError(
+                "Feature attribute selection removed all available feature columns.")
 
         if exclude_columns:
-            features = [column for column in features if column not in exclude_columns]
+            features = [
+                column for column in features if column not in exclude_columns]
             if not features:
-                raise ValueError("Feature exclusion removed all available feature columns.")
+                raise ValueError(
+                    "Feature exclusion removed all available feature columns.")
         self.feature_columns = list(dict.fromkeys(features))
         return self.feature_columns
 
@@ -516,7 +580,8 @@ class DiabetesHealthDataset(LightningDataModule):
 
         resolved: set[str] = set()
         for attribute in self.exclude_feature_attributes:
-            resolved.update(self._resolve_columns(available_columns, attribute))
+            resolved.update(self._resolve_columns(
+                available_columns, attribute))
         return resolved
 
     def _ensure_target_columns(self, available_columns: ColumnSequence) -> list[str]:
@@ -524,7 +589,8 @@ class DiabetesHealthDataset(LightningDataModule):
         if self.target_columns is None:
             resolved: list[str] = []
             for attribute in self.target_attributes:
-                resolved.extend(self._resolve_columns(available_columns, attribute))
+                resolved.extend(self._resolve_columns(
+                    available_columns, attribute))
             # Preserve order but drop duplicates
             self.target_columns = list(dict.fromkeys(resolved))
         return self.target_columns
@@ -553,7 +619,8 @@ class DiabetesHealthDataset(LightningDataModule):
             return attribute_labels[0]
 
         combined = pd.Series(
-            data=[tuple(values) for values in zip(*(series.astype(str) for series in attribute_labels))],
+            data=[tuple(values) for values in zip(*(series.astype(str)
+                                                    for series in attribute_labels))],
             index=df.index,
         )
         return combined
@@ -561,7 +628,8 @@ class DiabetesHealthDataset(LightningDataModule):
     def _resolve_columns(self, available_columns: ColumnSequence, attribute: str) -> list[str]:
         """Map an attribute name to the actual encoded columns in the dataframe."""
         normalized_attribute = self._normalize_attribute_name(attribute)
-        column_lookup = {self._normalize_attribute_name(column_name): column_name for column_name in available_columns}
+        column_lookup = {self._normalize_attribute_name(
+            column_name): column_name for column_name in available_columns}
 
         if normalized_attribute in column_lookup:
             return [column_lookup[normalized_attribute]]
@@ -575,7 +643,8 @@ class DiabetesHealthDataset(LightningDataModule):
         if matched:
             return matched
 
-        raise ValueError(f"Attribute '{attribute}' could not be resolved to any data columns.")
+        raise ValueError(
+            f"Attribute '{attribute}' could not be resolved to any data columns.")
 
     @staticmethod
     def _normalize_attribute_name(attribute: str) -> str:
