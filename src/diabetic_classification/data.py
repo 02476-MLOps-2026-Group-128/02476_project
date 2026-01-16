@@ -3,10 +3,10 @@ import shutil
 from pathlib import Path
 from typing import Optional, Sequence, Tuple, TypeAlias
 
+import hydra
 import kagglehub
 import pandas as pd
 import torch
-import hydra
 from loguru import logger
 from pyarrow import csv
 from pytorch_lightning import LightningDataModule
@@ -160,14 +160,14 @@ class DiabetesHealthDataset(LightningDataModule):
     ]
 
     def __init__(
-        self,
-        data_dir: Path | str,
-        batch_size: int,
-        num_workers: int,
-        pin_memory: bool,
-        val_split: float,
-        feature_attributes: Sequence[str],
-        target_attributes: Sequence[str] = ("diagnosed_diabetes",),
+            self,
+            data_dir: Path | str,
+            batch_size: int,
+            num_workers: int,
+            pin_memory: bool,
+            val_split: float,
+            feature_attributes: Sequence[str],
+            target_attributes: Sequence[str] = ("diagnosed_diabetes",),
     ) -> None:
         """
         Initialize data module configuration.

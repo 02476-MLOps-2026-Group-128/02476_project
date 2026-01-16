@@ -20,9 +20,9 @@ class TabularMLP(nn.Module):
     def __init__(
             self,
             input_dim: int,
-            hidden_dims: tuple[int, int] = (128, 64),
-            dropout: float = 0.2,
-            output_dim: int = 1,
+            hidden_dims: tuple[int, int],
+            dropout: float,
+            output_dim: int,
     ) -> None:
         super().__init__()
         layers: list[nn.Module] = []
@@ -63,11 +63,11 @@ class DiabetesClassifier(LightningModule):
     """
 
     def __init__(
-        self,
-        cfg: dict,
-        optimizer_cfg: dict,
-        input_dim: int,
-        output_dim: int = 1,
+            self,
+            cfg: dict,
+            optimizer_cfg: dict,
+            input_dim: int,
+            output_dim: int = 1,
     ) -> None:
         super().__init__()
         self.optimizer_cfg = optimizer_cfg
@@ -157,5 +157,3 @@ class DiabetesClassifier(LightningModule):
             )
         else:
             raise ValueError(f"Unsupported optimizer: {opt_name}")
-
-

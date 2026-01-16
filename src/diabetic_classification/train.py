@@ -3,9 +3,9 @@ from __future__ import annotations
 from datetime import datetime
 from pathlib import Path
 
+import hydra
 import pytorch_lightning as pl
 from pytorch_lightning.callbacks import ModelCheckpoint
-import hydra
 
 from diabetic_classification.data import DiabetesHealthDataset
 from diabetic_classification.model import DiabetesClassifier
