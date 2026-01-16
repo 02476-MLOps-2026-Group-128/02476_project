@@ -9,7 +9,7 @@ from http import HTTPStatus
 from typing import Any
 
 import torch
-from fastapi import FastAPI, HTTPException
+from fastapi import FastAPI, HTTPException, Depends
 from loguru import logger
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
@@ -139,6 +139,16 @@ async def lifespan(app: FastAPI):
 app = FastAPI(lifespan=lifespan)
 
 
+def get_model_registry() -> ModelRegistry:
+    """Dependency to get the model registry."""
+    return model_registry
+
+
+def get_device() -> torch.device:
+    """Dependency to get the compute device."""
+    return device
+
+
 @app.get("/")
 def read_root():
     """Simple health check endpoint."""
@@ -146,7 +156,7 @@ def read_root():
 
 
 @app.get("/models/")
-def list_models() -> dict[str, Any]:
+def list_models(registry: ModelRegistry = Depends(get_model_registry)) -> dict[str, Any]:
     """List available models in the registry."""
     # Get keys of model_registry but without the actual models
     registry_overview = {
@@ -159,7 +169,7 @@ def list_models() -> dict[str, Any]:
             }
             for model_type, feature_sets in model_types.items()
         }
-        for problem, model_types in model_registry.items()
+        for problem, model_types in registry.items()
     }
     return {"models": registry_overview}
 
@@ -170,25 +180,27 @@ def predict(
         model_type: ModelType,
         feature_set: FeatureSet,
         features: dict[str, float],
+        registry: ModelRegistry = Depends(get_model_registry),
+        device: torch.device = Depends(get_device),
 ) -> dict[str, Any]:
     """Make a prediction using the specified model."""
-    if problem_type.value not in model_registry:
+    if problem_type.value not in registry:
         raise HTTPException(
             status_code=HTTPStatus.NOT_FOUND,
             detail=f"Problem type '{problem_type}' not found.",
         )
-    if model_type.value not in model_registry[problem_type.value]:
+    if model_type.value not in registry[problem_type.value]:
         raise HTTPException(
             status_code=HTTPStatus.NOT_FOUND,
             detail=f"Model type '{model_type}' not found for problem '{problem_type}'.",
         )
-    if feature_set.value not in model_registry[problem_type.value][model_type.value]:
+    if feature_set.value not in registry[problem_type.value][model_type.value]:
         raise HTTPException(
             status_code=HTTPStatus.NOT_FOUND,
             detail=f"Feature set '{feature_set}' not found for model type '{model_type}' and problem '{problem_type}'.",
         )
 
-    model_info = model_registry[problem_type.value][model_type.value][feature_set.value]
+    model_info = registry[problem_type.value][model_type.value][feature_set.value]
     model = model_info["model"]
     input_dim = model_info["input_dim"]
     task_type = model_info["task_type"]
