@@ -6,9 +6,11 @@ from torch import nn
 
 
 class TabularMLP(nn.Module):
-    """A multilayer perceptron for tabular data.
+    """
+    A multilayer perceptron for tabular data.
 
     Args:
+    ----
         input_dim: Number of input features.
         hidden_dims: Hidden layer sizes for the MLP.
         dropout: Dropout probability for hidden layers.
@@ -16,11 +18,11 @@ class TabularMLP(nn.Module):
     """
 
     def __init__(
-        self,
-        input_dim: int,
-        hidden_dims: tuple[int, int] = (128, 64),
-        dropout: float = 0.2,
-        output_dim: int = 1,
+            self,
+            input_dim: int,
+            hidden_dims: tuple[int, int] = (128, 64),
+            dropout: float = 0.2,
+            output_dim: int = 1,
     ) -> None:
         super().__init__()
         layers: list[nn.Module] = []
@@ -35,21 +37,26 @@ class TabularMLP(nn.Module):
         self.net = nn.Sequential(*layers)
 
     def forward(self, x: torch.Tensor) -> torch.Tensor:
-        """Run a forward pass.
+        """
+        Run a forward pass.
 
         Args:
+        ----
             x: Input tensor with shape (batch, features).
 
         Returns:
+        -------
             Model logits with shape (batch, output_dim).
         """
         return self.net(x)
 
 
 class DiabetesClassifier(LightningModule):
-    """LightningModule wrapper for the tabular MLP.
+    """
+    LightningModule wrapper for the tabular MLP.
 
     Args:
+    ----
         cfg: Configuration dictionary for the model.
         input_dim: Number of input features.
         output_dim: Number of output units (targets).
@@ -75,24 +82,30 @@ class DiabetesClassifier(LightningModule):
         self.loss_fn = nn.BCEWithLogitsLoss()
 
     def forward(self, x: torch.Tensor) -> torch.Tensor:
-        """Forward input through the model.
+        """
+        Forward input through the model.
 
         Args:
+        ----
             x: Input tensor with shape (batch, features).
 
         Returns:
+        -------
             Logits with shape (batch, output_dim).
         """
         return self.model(x)
 
     def _shared_step(self, batch: tuple[torch.Tensor, torch.Tensor], stage: str) -> torch.Tensor:
-        """Compute loss and log metrics for a training stage.
+        """
+        Compute loss and log metrics for a training stage.
 
         Args:
+        ----
             batch: Tuple of (features, targets).
             stage: Stage name for logging.
 
         Returns:
+        -------
             Scalar loss tensor.
         """
         x, y = batch
