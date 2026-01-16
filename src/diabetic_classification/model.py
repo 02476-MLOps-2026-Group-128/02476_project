@@ -64,8 +64,8 @@ class DiabetesClassifier(LightningModule):
 
     def __init__(
             self,
-            cfg: dict,
-            optimizer_cfg: dict,
+            cfg,
+            optimizer_cfg,
             input_dim: int,
             output_dim: int = 1,
     ) -> None:

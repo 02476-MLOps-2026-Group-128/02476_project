@@ -79,8 +79,7 @@ class DiabetesHealthDataset(LightningDataModule):
     End-to-end data manager for the Diabetes Health Indicators dataset.
 
     The module downloads the Kaggle dataset when needed, performs one-hot encoding,
-    normalizes numerical features, persists processed CSV splits, and exposes
-    Lightning-ready train/val/test dataloaders. Targets and feature subsets can
+    exposes Lightning-ready train/val/test dataloaders. Targets and feature subsets can
     be configured with semantic attribute names (e.g. ``"gender"`` expands to
     every encoded column), enabling rapid experimentation without touching the
     preprocessing pipeline.
@@ -162,11 +161,11 @@ class DiabetesHealthDataset(LightningDataModule):
     def __init__(
             self,
             data_dir: Path | str,
-            batch_size: int,
-            num_workers: int,
-            pin_memory: bool,
-            val_split: float,
-            feature_attributes: Sequence[str],
+            batch_size: int = 256,
+            num_workers: int = 5,
+            pin_memory: bool = False,
+            val_split: float = 0.1,
+            feature_attributes: Sequence[str] | None = None,
             target_attributes: Sequence[str] = ("diagnosed_diabetes",),
     ) -> None:
         """
@@ -179,7 +178,7 @@ class DiabetesHealthDataset(LightningDataModule):
             num_workers: Number of workers to use in each dataloader.
             pin_memory: Whether loaders should pin memory for CUDA training.
             val_split: Fraction of the training data to reserve for validation.
-            feature_attributes: Feature attribute(s) to retain after preprocessing.
+            feature_attributes: Feature attribute(s) to retain after preprocessing, defaults to all.
             target_attributes: Supervised target attribute(s) to predict/stratify (defaults to 'diagnosed_diabetes').
         """
         super().__init__()
@@ -194,8 +193,8 @@ class DiabetesHealthDataset(LightningDataModule):
         self.num_workers = num_workers
         self.pin_memory = pin_memory
         self.val_split = val_split
-        self.target_attributes = self._normalize_target_attributes(target_attributes)
-        self.feature_attributes = self._normalize_feature_attributes(feature_attributes)
+        self.target_attributes = target_attributes
+        self.feature_attributes = feature_attributes
         self.stratification_attributes = self._derive_stratification_attributes()
 
         self.train_dataset: Optional[DiabetesTabularDataset] = None
@@ -310,12 +309,6 @@ class DiabetesHealthDataset(LightningDataModule):
         processed_dir = output_folder or (self.data_dir / "processed")
         self.__preprocess_data(raw_dir, processed_dir)
 
-    def select_features(self, feature_attributes: Sequence[str] | str | None) -> None:
-        """Update the feature subset used when constructing datasets."""
-        logger.info("Updating feature selection to {}", feature_attributes)
-        self.feature_attributes = self._normalize_feature_attributes(feature_attributes)
-        self.feature_columns = None
-
     def __len__(self) -> int:
         """Return the length of the training dataset if available."""
         if self.train_dataset is None:
@@ -414,35 +407,6 @@ class DiabetesHealthDataset(LightningDataModule):
         test_df.to_csv(output_folder / "test_data.csv", index=False)
         std_params_df.to_csv(output_folder / "standardization_params.csv", index=False)
         logger.info("Persisted processed splits to {}", output_folder)
-
-    def _normalize_target_attributes(self, target_attributes: Sequence[str] | str) -> list[str]:
-        """Coerce user input into a non-empty list of attribute names."""
-        if isinstance(target_attributes, str):
-            attributes = [target_attributes]
-        else:
-            attributes = list(target_attributes)
-
-        attributes = [attr for attr in attributes if attr]
-        if not attributes:
-            raise ValueError("target_attributes must contain at least one attribute name.")
-
-        return attributes
-
-    def _normalize_feature_attributes(self, feature_attributes: Sequence[str] | str | None) -> Optional[list[str]]:
-        """Normalize optional feature attribute input."""
-        if feature_attributes is None:
-            return None
-
-        if isinstance(feature_attributes, str):
-            attributes = [feature_attributes]
-        else:
-            attributes = list(feature_attributes)
-
-        attributes = [attr for attr in attributes if attr]
-        if not attributes:
-            raise ValueError("feature_attributes must contain at least one attribute name when provided.")
-
-        return attributes
 
     def _derive_stratification_attributes(self) -> list[str]:
         """Select categorical targets that support stratification."""

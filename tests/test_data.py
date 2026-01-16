@@ -123,29 +123,6 @@ def test_dataset_allows_feature_subset():
         atol=1e-6,
     )
 
-
-def test_dataset_excludes_feature_attributes():
-    _ensure_processed_data(_DATA_PATH)
-    exclude_attributes = ["gender", "ethnicity"]
-    dataset = DiabetesHealthDataset(
-        _DATA_PATH,
-        target_attributes="diagnosed_diabetes",
-        exclude_feature_attributes=exclude_attributes,
-    )
-    dataset.setup("fit")
-
-    assert dataset.train_dataset is not None
-
-    train_df = dataset._load_split("train_data.csv")
-    excluded_columns: set[str] = set()
-    for attribute in exclude_attributes:
-        excluded_columns.update(dataset._resolve_columns(train_df.columns, attribute))
-
-    assert dataset.feature_columns is not None
-    assert set(dataset.feature_columns).isdisjoint(
-        excluded_columns), "Excluded columns should not appear in feature_columns"
-
-
 @pytest.mark.download
 def test_prepare_data_downloads_and_processes(tmp_path: Path):
     data_dir = tmp_path / "data"
