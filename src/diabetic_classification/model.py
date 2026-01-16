@@ -91,7 +91,9 @@ class DiabetesClassifier(LightningModule):
             if weight_tensor.ndim == 0:
                 weight_tensor = weight_tensor.unsqueeze(0)
         self.register_buffer("pos_weight", weight_tensor)
-        self.loss_fn = nn.BCEWithLogitsLoss(pos_weight=self.pos_weight)
+        self.loss_fn = nn.BCEWithLogitsLoss(
+            pos_weight=self.pos_weight  # type: ignore[arg-type]
+        )
 
     def forward(self, x: torch.Tensor) -> torch.Tensor:
         """
