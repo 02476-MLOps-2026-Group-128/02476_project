@@ -1,0 +1,17 @@
+{
+    "diagnosed_diabetes": {
+        "MLP": {
+            "feature_set1": {
+                "model_path": "models/diagnosed_diabetes/MLP/feature_set1/best_model.pt",
+                "input_dim": 35,
+                "hidden_dims": [
+                    128,
+                    64
+                ],
+                "dropout": 0.2,
+                "output_dim": 1,
+                "task_type": "binary_classification"
+            }
+        }
+    }
+}

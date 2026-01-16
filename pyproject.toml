@@ -26,6 +26,7 @@ dependencies = [
     "numpy>=2.4.0",
     "pandas>=2.3.3",
     "pyarrow>=22.0.0",
+    "pydantic-settings>=2.12.0",
     "pytorch-lightning>=2.6.0",
     "scikit-learn>=1.8.0",
     "torch==2.6.0",
@@ -48,6 +49,7 @@ dev = [
     "ipykernel>=7.1.0",
     "mypy>=1.19.1",
     "pandas-stubs>=2.3.3.260113",
+    "httpx>=0.28.1",
 ]
 
 
