@@ -14,6 +14,7 @@ def prepare_data(ctx: Context) -> None:
     ctx.run(f"uv run src/{PROJECT_NAME}/data.py data", echo=True, pty=not WINDOWS)
 
 
+
 @task
 def train(ctx: Context) -> None:
     """Train model."""
