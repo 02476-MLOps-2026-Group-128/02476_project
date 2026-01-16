@@ -9,7 +9,7 @@ from http import HTTPStatus
 from typing import Any
 
 import torch
-from fastapi import FastAPI, HTTPException, Depends
+from fastapi import Depends, FastAPI, HTTPException
 from loguru import logger
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
