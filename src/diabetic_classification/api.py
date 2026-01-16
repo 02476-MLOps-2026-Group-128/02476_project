@@ -12,6 +12,12 @@ from enum import Enum
 from diabetic_classification.model import TabularMLP
 
 
+# Global variables initialized in lifespan
+device: torch.device
+fs1_mlp: TabularMLP
+model_registry: dict[str, dict[str, dict[str, dict]]]
+
+
 class ProblemType(str, Enum):
     """Enumeration of problem types."""
     DIAGNOSED_DIABETES = "diagnosed_diabetes"
