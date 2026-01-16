@@ -10,6 +10,9 @@ num_workers: 5 # int
 # Fraction of training data reserved for validation.
 val_split: 0.1 # float
 
+# Whether loaders should pin memory for CUDA training
+pin_memory: false # bool
+
 # Random seed for reproducibility.
 seed: 42 # int
 

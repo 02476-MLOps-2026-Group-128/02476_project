@@ -53,6 +53,3 @@ feature_attributes: # list of strings
   - employment_status_unemployed
   - smoking_status_former
   - smoking_status_never
-
-# Feature attribute names to exclude
-exclude_feature_attributes: [] # list of strings

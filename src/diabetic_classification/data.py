@@ -6,7 +6,7 @@ from typing import Optional, Sequence, Tuple, TypeAlias
 import kagglehub
 import pandas as pd
 import torch
-import typer
+import hydra
 from loguru import logger
 from pyarrow import csv
 from pytorch_lightning import LightningDataModule
@@ -159,13 +159,12 @@ class DiabetesHealthDataset(LightningDataModule):
     def __init__(
         self,
         data_dir: Path | str,
-        batch_size: int = 64,
-        num_workers: int = 0,
-        pin_memory: bool = False,
-        val_split: float = 0.1,
-        target_attributes: Sequence[str] | str = "diagnosed_diabetes",
-        feature_attributes: Sequence[str] | str | None = None,
-        exclude_feature_attributes: Sequence[str] | str | None = None,
+        batch_size: int,
+        num_workers: int,
+        pin_memory: bool,
+        val_split: float,
+        feature_attributes: Sequence[str],
+        target_attributes: Sequence[str] = ("diagnosed_diabetes",),
     ) -> None:
         """Initialize data module configuration.
 
@@ -175,9 +174,8 @@ class DiabetesHealthDataset(LightningDataModule):
             num_workers: Number of workers to use in each dataloader.
             pin_memory: Whether loaders should pin memory for CUDA training.
             val_split: Fraction of the training data to reserve for validation.
+            feature_attributes: Feature attribute(s) to retain after preprocessing.
             target_attributes: Supervised target attribute(s) to predict/stratify (defaults to 'diagnosed_diabetes').
-            feature_attributes: Optional feature attribute(s) to retain after preprocessing. Defaults to all features.
-            exclude_feature_attributes: Optional feature attribute(s) to drop after preprocessing.
         """
         super().__init__()
 
@@ -193,7 +191,6 @@ class DiabetesHealthDataset(LightningDataModule):
         self.val_split = val_split
         self.target_attributes = self._normalize_target_attributes(target_attributes)
         self.feature_attributes = self._normalize_feature_attributes(feature_attributes)
-        self.exclude_feature_attributes = self._normalize_exclude_feature_attributes(exclude_feature_attributes)
         self.stratification_attributes = self._derive_stratification_attributes()
 
         self.train_dataset: Optional[DiabetesTabularDataset] = None
@@ -310,12 +307,6 @@ class DiabetesHealthDataset(LightningDataModule):
         """Update the feature subset used when constructing datasets."""
         logger.info("Updating feature selection to {}", feature_attributes)
         self.feature_attributes = self._normalize_feature_attributes(feature_attributes)
-        self.feature_columns = None
-
-    def exclude_features(self, exclude_feature_attributes: Sequence[str] | str | None) -> None:
-        """Update the excluded feature subset used when constructing datasets."""
-        logger.info("Updating excluded feature selection to {}", exclude_feature_attributes)
-        self.exclude_feature_attributes = self._normalize_exclude_feature_attributes(exclude_feature_attributes)
         self.feature_columns = None
 
     def __len__(self) -> int:
@@ -446,22 +437,6 @@ class DiabetesHealthDataset(LightningDataModule):
 
         return attributes
 
-    def _normalize_exclude_feature_attributes(
-        self, exclude_feature_attributes: Sequence[str] | str | None
-    ) -> Optional[list[str]]:
-        """Normalize optional excluded attribute input."""
-        if exclude_feature_attributes is None:
-            return None
-
-        if isinstance(exclude_feature_attributes, str):
-            attributes = [exclude_feature_attributes]
-        else:
-            attributes = list(exclude_feature_attributes)
-
-        attributes = [attr for attr in attributes if attr]
-
-        return attributes
-
     def _derive_stratification_attributes(self) -> list[str]:
         """Select categorical targets that support stratification."""
         categorical = set(self.CATEGORICAL_TARGET_ATTRIBUTES)
@@ -472,16 +447,10 @@ class DiabetesHealthDataset(LightningDataModule):
         if self.feature_columns is not None:
             return self.feature_columns
 
-        exclude_columns = self._resolve_exclude_columns(available_columns)
-
         if self.feature_attributes is None:
             features = [column for column in available_columns if column not in target_columns]
             if not features:
                 raise ValueError("No feature columns remain after removing targets.")
-            if exclude_columns:
-                features = [column for column in features if column not in exclude_columns]
-                if not features:
-                    raise ValueError("Feature exclusion removed all available feature columns.")
             self.feature_columns = list(dict.fromkeys(features))
             return self.feature_columns
 
@@ -493,22 +462,8 @@ class DiabetesHealthDataset(LightningDataModule):
         if not features:
             raise ValueError("Feature attribute selection removed all available feature columns.")
 
-        if exclude_columns:
-            features = [column for column in features if column not in exclude_columns]
-            if not features:
-                raise ValueError("Feature exclusion removed all available feature columns.")
         self.feature_columns = list(dict.fromkeys(features))
         return self.feature_columns
-
-    def _resolve_exclude_columns(self, available_columns: ColumnSequence) -> set[str]:
-        """Resolve the concrete columns that should be excluded from the feature set."""
-        if not self.exclude_feature_attributes:
-            return set()
-
-        resolved: set[str] = set()
-        for attribute in self.exclude_feature_attributes:
-            resolved.update(self._resolve_columns(available_columns, attribute))
-        return resolved
 
     def _ensure_target_columns(self, available_columns: ColumnSequence) -> list[str]:
         """Resolve and cache the concrete target columns present in the data."""
@@ -585,16 +540,26 @@ class DiabetesHealthDataset(LightningDataModule):
         return csv.read_csv(processed_data_dir / filename).to_pandas(self_destruct=True)
 
 
-def prepare_dataset(data_path: Path) -> None:
-    """CLI helper to prepare raw data into processed splits.
-
-    Args:
-        data_path: Base directory that contains the raw subfolder.
-    """
+@hydra.main(
+    version_base=None,
+    config_path="../../configs/hydra",
+    config_name="config"
+)
+def prepare_dataset(cfg) -> None:
+    """CLI helper to prepare raw data into processed splits using Hydra config."""
+    data_path = Path(cfg.data.data_dir)
     logger.info("Preparing data via CLI for base path {}", data_path)
-    dataset = DiabetesHealthDataset(data_path)
+    dataset = DiabetesHealthDataset(
+        data_dir=data_path,
+        batch_size=cfg.trainer.batch_size,
+        num_workers=cfg.trainer.num_workers,
+        pin_memory=cfg.trainer.pin_memory,
+        val_split=cfg.trainer.val_split,
+        feature_attributes=cfg.data.feature_attributes,
+        target_attributes=cfg.data.target_attributes,
+    )
     dataset.prepare_data()
 
 
 if __name__ == "__main__":
-    typer.run(prepare_dataset)
+    prepare_dataset()

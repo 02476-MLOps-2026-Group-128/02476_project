@@ -23,10 +23,6 @@ def train(cfg) -> None:
     if not cfg.data.target_attributes:
         raise ValueError("Specify at least one target attribute.")
 
-    targets = cfg.data.target_attributes
-    normalized_targets: list[str] | str = targets if len(targets) > 1 \
-        else targets[0]
-
     timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
     model_dir = Path(cfg.trainer.models_dir) / timestamp
     model_dir.mkdir(parents=True, exist_ok=True)
@@ -35,10 +31,10 @@ def train(cfg) -> None:
         data_dir=Path(cfg.data.data_dir),
         batch_size=cfg.trainer.batch_size,
         num_workers=cfg.trainer.num_workers,
+        pin_memory=cfg.trainer.pin_memory,
         val_split=cfg.trainer.val_split,
-        target_attributes=normalized_targets,
         feature_attributes=cfg.data.feature_attributes,
-        exclude_feature_attributes=cfg.data.exclude_feature_attributes,
+        target_attributes=cfg.data.target_attributes,
     )
     data.setup("fit")
 
