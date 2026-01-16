@@ -41,7 +41,7 @@ def test_processed_train_split_is_normalized():
 
 def test_dataset_handles_single_target_attribute():
     _ensure_processed_data(_DATA_PATH)
-    dataset = DiabetesHealthDataset(_DATA_PATH, target_attributes="diagnosed_diabetes")
+    dataset = DiabetesHealthDataset(_DATA_PATH)
     dataset.setup("fit")
 
     assert dataset.train_dataset is not None
@@ -89,7 +89,6 @@ def test_dataset_allows_feature_subset():
     feature_attributes = ["age", "bmi", "gender"]
     dataset = DiabetesHealthDataset(
         _DATA_PATH,
-        target_attributes="diagnosed_diabetes",
         feature_attributes=feature_attributes,
     )
     dataset.setup("fit")
