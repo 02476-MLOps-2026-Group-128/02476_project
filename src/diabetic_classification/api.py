@@ -150,13 +150,30 @@ def get_device() -> torch.device:
 
 
 @app.get("/")
-def read_root():
-    """Simple health check endpoint."""
-    return {"message": "Diabetic Classification API is running."}
+async def read_root(registry: ModelRegistry = Depends(get_model_registry)) -> dict[str, Any]:
+    """Enhanced health check endpoint with API status information."""
+    # Count available models
+    model_count = sum(
+        len(feature_sets)
+        for model_types in registry.values()
+        for feature_sets in model_types.values()
+    )
+
+    return {
+        "status": "healthy",
+        "message": "Diabetic Classification API is running",
+        "version": "1.0.0",
+        "models_loaded": model_count,
+        "endpoints": {
+            "health": "/",
+            "list_models": "/models/",
+            "predict": "/predict/{problem_type}/{model_type}/{feature_set}/",
+        },
+    }
 
 
 @app.get("/models/")
-def list_models(registry: ModelRegistry = Depends(get_model_registry)) -> dict[str, Any]:
+async def list_models(registry: ModelRegistry = Depends(get_model_registry)) -> dict[str, Any]:
     """List available models in the registry."""
     # Get keys of model_registry but without the actual models
     registry_overview = {
@@ -175,7 +192,7 @@ def list_models(registry: ModelRegistry = Depends(get_model_registry)) -> dict[s
 
 
 @app.post("/predict/{problem_type}/{model_type}/{feature_set}/")
-def predict(
+async def predict(
         problem_type: ProblemType,
         model_type: ModelType,
         feature_set: FeatureSet,
