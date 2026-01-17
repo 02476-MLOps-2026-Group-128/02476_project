@@ -177,7 +177,9 @@ cython_debug/
 #.idea/
 
 # Data files
-data/
+# Ignore the data files but not the directory, needed by dvc
+data/processed/
+data/raw/
 
 # PyTorch Lightning
 lightning_logs/
