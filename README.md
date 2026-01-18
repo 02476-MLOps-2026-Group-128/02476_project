@@ -1,6 +1,10 @@
 # Diabetes classification
 
-
+## Development
+**Installing pre-commit config:**
+```bash
+uv run pre-commit install
+```
 
 
 ## Project structure
