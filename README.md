@@ -140,3 +140,14 @@ Key args:
 
 Example:
 uv run python -m diabetic_classification.train --exclude-feature-attributes "diabetes_stage_no_diabetes,diabetes_stage_pre-diabetes,diabetes_stage_type_1,diabetes_stage_type_2"
+
+### Training in the cloud
+The GCP project contains the image of the latest training code (train.dockerfile). This image be used to run training in GCP using Vertex AI. To create a training job in Vertex AI, use the following command:
+
+```bash
+gcloud ai custom-jobs create --region=europe-west4 --display-name=train --config=configs/config_gpu.yaml
+```
+
+This command uses the configuration file `configs/config_gpu.yaml`, which specifies where to find the docker image, the machine type to use (which we have configured to use a GPU), the output directory, and the Weights & Biases API key for logging.
+
+The status of the training job can be monitored in the GCP console: [here](https://console.cloud.google.com/vertex-ai/training/custom-jobs?project=diabetic-classification-484510&vertex_ai_region=europe-west4).

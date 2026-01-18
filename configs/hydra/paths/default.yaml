@@ -1,2 +1,5 @@
 # Path to project root
 project_root: ${oc.env:PROJECT_ROOT, ${hydra:runtime.cwd}}
+
+# Directory to save trained models.
+models_dir: models # Path as string, should be converted to Path

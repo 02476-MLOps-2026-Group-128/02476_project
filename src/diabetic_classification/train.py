@@ -3,6 +3,7 @@ from __future__ import annotations
 from datetime import datetime
 from pathlib import Path
 
+import os
 import hydra
 import pytorch_lightning as pl
 from pytorch_lightning.callbacks import ModelCheckpoint
@@ -23,9 +24,18 @@ def train(cfg) -> None:
     if not cfg.data.target_attributes:
         raise ValueError("Specify at least one target attribute.")
 
+    # TODO: check https://docs.cloud.google.com/vertex-ai/docs/reference/rest/v1/CustomJobSpec -> also make sure we log Hydra and Wandb configs
+    model_dir = os.environ.get("AIP_MODEL_DIR") # Vertex AI compatibility
+    if model_dir is not None:
+        model_dir = Path(model_dir)
+    else:
+        model_dir = Path(cfg.paths.models_dir)
+
     timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
-    model_dir = Path(cfg.trainer.models_dir) / timestamp
+    model_dir = model_dir / timestamp
     model_dir.mkdir(parents=True, exist_ok=True)
+
+    print(f"Model artifacts will be saved to: {model_dir.resolve()}")
 
     data = DiabetesHealthDataset(
         data_dir=Path(cfg.data.data_dir),
