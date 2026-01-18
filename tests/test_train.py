@@ -1,21 +1,40 @@
 import pytest
+from hydra import initialize, compose
 
 import diabetic_classification.train as train_module
 
+def test_valid_optimizer():
+    with initialize(version_base=None, config_path="../configs/hydra"):
+        cfg = compose(
+            config_name="config",
+            overrides=[
+                "trainer.max_epochs=1",
+                "paths.project_root=./",
+                "data.data_dir=./data",
+            ] # Use default valid optimizer
+        )
 
-@pytest.mark.parametrize(
-    "value, expected",
-    [
-        (None, None),
-        ("age", "age"),
-        ("age,bmi", ["age", "bmi"]),
-        (" age , bmi ", ["age", "bmi"]),
-    ],
-)
-def test_parse_attributes(value: str | None, expected: list[str] | str | None) -> None:
-    assert train_module._parse_attributes(value) == expected, "Parsed attributes should match expected output."
+        # Should not raise
+        train_module.train_impl(cfg)
 
+def test_invalid_optimizer():
+    with initialize(version_base=None, config_path="../configs/hydra"):
+        cfg = compose(
+            config_name="config",
+            overrides=[
+                "optimizer.name=invalid",
+                "trainer.max_epochs=1",
+                "paths.project_root=./",
+                "data.data_dir=./data",
+            ]
+        )
 
-def test_parse_attributes_raises_on_empty() -> None:
-    with pytest.raises(ValueError, match="Attribute list cannot be empty."):
-        train_module._parse_attributes(" , ")
+        # Capture exception
+        with pytest.raises(ValueError) as exc_info:
+            train_module.train_impl(cfg)
+
+        # Print the actual exception message
+        print("Exception message:", exc_info.value)
+
+        # Assert the message manually
+        assert "Unsupported optimizer" in str(exc_info.value)

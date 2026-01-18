@@ -8,13 +8,11 @@ import pytorch_lightning as pl
 from pytorch_lightning.callbacks import ModelCheckpoint
 from pytorch_lightning.loggers import WandbLogger
 
-import wandb
 from diabetic_classification.data import DiabetesHealthDataset
 from diabetic_classification.model import DiabetesClassifier
 
 
-@hydra.main(version_base=None, config_path="../../configs/hydra", config_name="config")
-def train(cfg) -> None:
+def train_impl(cfg) -> None:
     """Train the diabetes classifier with PyTorch Lightning, using the specified Hydra configuration."""
     pl.seed_everything(cfg.trainer.seed, workers=True)
 
@@ -86,6 +84,10 @@ def train(cfg) -> None:
     trainer.fit(model, datamodule=data)
     trainer.test(model, datamodule=data)
 
+@hydra.main(version_base=None, config_path="../../configs/hydra", config_name="config")
+def train(cfg) -> None:
+    """Hydra entry point for training."""
+    train_impl(cfg)
 
 if __name__ == "__main__":
     train()
