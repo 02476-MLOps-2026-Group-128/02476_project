@@ -4,7 +4,7 @@ defaults:
   - model: tabular_classifier
   - optimizer: adam
   - paths: default
-
+  - _self_
 hydra:
   run:
     dir: ${paths.project_root}/models/${now:%Y%m%d_%H%M%S}/hydra

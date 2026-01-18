@@ -135,3 +135,30 @@ checklist for the exam. The parenthesis at the end indicates what module the bul
 Run: uv run python -m diabetic_classification.train
 
 For the hyperparameter configuration we use Hydra config files, which can be found in the 'configs/hydra' directory. These parameters are added to the generated model folder, in a 'hydra' subfolder.
+
+## Testing
+Run the tests:
+```bash
+uv run pytest tests/
+```
+
+## Weights & Biases (wandb)
+Training logs are sent to Weights & Biases via `WandbLogger` in `src/diabetic_classification/train.py`.
+
+Basic login (browser-based):
+```bash
+uv run wandb login
+```
+
+Login with an API key (non-interactive):
+```bash
+export WANDB_API_KEY="YOUR_API_KEY"
+uv run wandb login "$WANDB_API_KEY"
+```
+
+
+To run training without logging to Weights & Biases, you can disable it by setting the `WANDB_MODE` environment variable:
+
+```bash
+WANDB_MODE=disabled uv run python -m diabetic_classification.train
+```

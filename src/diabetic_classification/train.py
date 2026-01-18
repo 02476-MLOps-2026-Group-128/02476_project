@@ -51,6 +51,8 @@ def train_impl(cfg) -> None:
         entity="vojtadeconinck-danmarks-tekniske-universitet-dtu",
         name="diabetes-mlp",
         log_model=True,
+        save_dir= Path(cfg.trainer.models_dir) / timestamp / "wandb"
+
     )
     wandb_logger.experiment.config.update(
         {

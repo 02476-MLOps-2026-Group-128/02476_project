@@ -1,0 +1,73 @@
+data:
+  data_dir: ${paths.project_root}/data
+  target_attributes:
+  - diagnosed_diabetes
+  feature_attributes:
+  - age
+  - alcohol_consumption_per_week
+  - physical_activity_minutes_per_week
+  - diet_score
+  - sleep_hours_per_day
+  - screen_time_hours_per_day
+  - family_history_diabetes
+  - hypertension_history
+  - cardiovascular_history
+  - bmi
+  - waist_to_hip_ratio
+  - systolic_bp
+  - diastolic_bp
+  - heart_rate
+  - cholesterol_total
+  - hdl_cholesterol
+  - ldl_cholesterol
+  - triglycerides
+  - glucose_postprandial
+  - glucose_fasting
+  - insulin_level
+  - hba1c
+  - gender_male
+  - gender_other
+  - ethnicity_black
+  - ethnicity_hispanic
+  - ethnicity_other
+  - ethnicity_white
+  - education_level_highschool
+  - education_level_no_formal
+  - education_level_postgraduate
+  - income_level_low
+  - income_level_lower-middle
+  - income_level_middle
+  - income_level_upper-middle
+  - employment_status_retired
+  - employment_status_student
+  - employment_status_unemployed
+  - smoking_status_former
+  - smoking_status_never
+trainer:
+  batch_size: 256
+  max_epochs: 5
+  num_workers: 5
+  val_split: 0.1
+  pin_memory: false
+  seed: 42
+  models_dir: models
+  deterministic: true
+  log_every_n_steps: 50
+  accelerator: auto
+  devices: 1
+  model_checkpoint:
+    save_top_k: 2
+    monitor: val_loss
+    mode: min
+    save_last: true
+model:
+  hidden_dims:
+  - 128
+  - 64
+  dropout: 0.2
+optimizer:
+  name: adam
+  lr: 0.001
+  weight_decay: 0.0001
+paths:
+  project_root: ${oc.env:PROJECT_ROOT, ${hydra:runtime.cwd}}
