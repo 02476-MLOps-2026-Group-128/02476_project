@@ -5,10 +5,10 @@ from pathlib import Path
 
 import hydra
 import pytorch_lightning as pl
-import wandb
 from pytorch_lightning.callbacks import ModelCheckpoint
 from pytorch_lightning.loggers import WandbLogger
 
+import wandb
 from diabetic_classification.data import DiabetesHealthDataset
 from diabetic_classification.model import DiabetesClassifier
 
@@ -56,12 +56,11 @@ def train(cfg) -> None:
     )
     wandb_logger.experiment.config.update(
         {
-            "lr": lr,
-            "batch_size": batch_size,
-            "max_epochs": max_epochs,
-            "target_attributes": parsed_targets,
-            "feature_attributes": parsed_features,
-            "exclude_feature_attributes": parsed_excludes,
+            "lr": cfg.optimizer.lr,
+            "batch_size": cfg.trainer.batch_size,
+            "max_epochs": cfg.trainer.max_epochs,
+            "target_attributes": cfg.data.target_attributes,
+            "feature_attributes": cfg.data.feature_attributes,
         }
     )
 
