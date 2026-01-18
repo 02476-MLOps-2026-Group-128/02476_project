@@ -6,18 +6,14 @@ from pathlib import Path
 import hydra
 import pytorch_lightning as pl
 import wandb
-
-from diabetic_classification.data import DiabetesHealthDataset
-from diabetic_classification.model import DiabetesClassifier
 from pytorch_lightning.callbacks import ModelCheckpoint
 from pytorch_lightning.loggers import WandbLogger
 
+from diabetic_classification.data import DiabetesHealthDataset
+from diabetic_classification.model import DiabetesClassifier
 
-@hydra.main(
-    version_base=None,
-    config_path="../../configs/hydra",
-    config_name="config"
-)
+
+@hydra.main(version_base=None, config_path="../../configs/hydra", config_name="config")
 def train(cfg) -> None:
     """Train the diabetes classifier with PyTorch Lightning, using the specified Hydra configuration."""
     pl.seed_everything(cfg.trainer.seed, workers=True)
@@ -52,7 +48,12 @@ def train(cfg) -> None:
         output_dim=len(data.target_columns),
     )
 
-    wandb_logger = WandbLogger(project="Diatech", entity="vojtadeconinck-danmarks-tekniske-universitet-dtu", name="diabetes-mlp", log_model=True)
+    wandb_logger = WandbLogger(
+        project="Diatech",
+        entity="vojtadeconinck-danmarks-tekniske-universitet-dtu",
+        name="diabetes-mlp",
+        log_model=True,
+    )
     wandb_logger.experiment.config.update(
         {
             "lr": lr,
