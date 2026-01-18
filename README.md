@@ -142,6 +142,19 @@ Run the tests:
 uv run pytest tests/
 ```
 
+## Coverage
+Run tests with coverage:
+```bash
+uv run coverage run -m pytest tests/
+```
+
+Show a coverage report:
+```bash
+uv run coverage report -m
+```
+
+Coverage omits test files via `[tool.coverage.run]` in `pyproject.toml`.
+
 ## Weights & Biases (wandb)
 Training logs are sent to Weights & Biases via `WandbLogger` in `src/diabetic_classification/train.py`.
 
