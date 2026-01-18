@@ -17,9 +17,9 @@ allowed_types = [DictConfig, ContainerMetadata, Any, dict, defaultdict, AnyNode,
 
 
 def export_to_onnx(
-    checkpoint_path: str = typer.Argument(help="Path to .ckpt file"),
-    output_path: str | None = typer.Argument(default=None, help="Path to save the ONNX model"),
-) -> None:
+    checkpoint_path: str,
+    output_path: str | None = None,
+) -> Path:
     """Export the DiabetesClassifier model to ONNX format."""
     with initialize(version_base=None, config_path="../configs/hydra"):
         cfg = compose(config_name="config", return_hydra_config=True)
@@ -41,7 +41,7 @@ def export_to_onnx(
     example_input = data.train_dataset.features[:1]
 
     if output_path is None:
-        output_path = Path("onnx_models") / Path(Path(checkpoint_path).stem).with_suffix(".onnx")
+        output_path = Path(checkpoint_path).with_suffix(".onnx")
     Path(output_path).parent.mkdir(parents=True, exist_ok=True)
 
     torch.onnx.export(
@@ -59,6 +59,16 @@ def export_to_onnx(
         },
     )
 
+    return output_path
+
+
+def run_export(
+    checkpoint_path: str = typer.Argument(help="Path to .ckpt file"),
+    output_path: str | None = typer.Argument(default=None, help="Path to save the ONNX model"),
+) -> None:
+    """Run the export_to_onnx function via Typer CLI."""
+    export_to_onnx(checkpoint_path, output_path)
+
 
 if __name__ == "__main__":
-    typer.run(export_to_onnx)
+    typer.run(run_export)

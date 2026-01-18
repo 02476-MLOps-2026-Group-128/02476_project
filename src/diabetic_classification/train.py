@@ -11,12 +11,7 @@ from diabetic_classification.data import DiabetesHealthDataset
 from diabetic_classification.model import DiabetesClassifier
 
 
-@hydra.main(
-    version_base=None,
-    config_path="../../configs/hydra",
-    config_name="config"
-)
-def train(cfg) -> None:
+def run_training(cfg) -> None:
     """Train the diabetes classifier with PyTorch Lightning, using the specified Hydra configuration."""
     pl.seed_everything(cfg.trainer.seed, workers=True)
 
@@ -70,6 +65,19 @@ def train(cfg) -> None:
     )
     trainer.fit(model, datamodule=data)
     trainer.test(model, datamodule=data)
+
+    final_ckpt = trainer.checkpoint_callback.best_model_path
+    return final_ckpt
+
+
+@hydra.main(version_base=None, config_path="../../configs/hydra", config_name="config")
+def train(cfg) -> None:
+    """
+    Wrap the run_training function for Hydra.
+
+    The wrapped function is detached for easier testing.
+    """
+    run_training(cfg)
 
 
 if __name__ == "__main__":
