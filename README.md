@@ -1,6 +1,10 @@
 # Diabetes classification
 
-
+## Development
+**Installing pre-commit config:**
+```bash
+uv run pre-commit install
+```
 
 
 ## Project structure
@@ -130,12 +134,4 @@ checklist for the exam. The parenthesis at the end indicates what module the bul
 ## Training
 Run: uv run python -m diabetic_classification.train
 
-Key args:
-- --data-dir (default: data/)
-- --target-attributes (default: diagnosed_diabetes)
-- --feature-attributes (comma-separated)
-- --max-epochs (default: 5)
-- --batch-size (default: 256)
-
-Example:
-uv run python -m diabetic_classification.train --exclude-feature-attributes "diabetes_stage_no_diabetes,diabetes_stage_pre-diabetes,diabetes_stage_type_1,diabetes_stage_type_2"
+For the hyperparameter configuration we use Hydra config files, which can be found in the 'configs/hydra' directory. These parameters are added to the generated model folder, in a 'hydra' subfolder.

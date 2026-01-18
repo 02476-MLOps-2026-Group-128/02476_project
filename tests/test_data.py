@@ -3,10 +3,11 @@ from pathlib import Path
 import numpy as np
 import pandas as pd
 import pytest
-from sklearn.model_selection import train_test_split
-
 from diabetic_classification import constants
 from diabetic_classification.data import DiabetesHealthDataset
+from sklearn.model_selection import train_test_split
+
+from tests import _DATA_PATH, _PROCESSED_DATA_PATH
 
 
 def _ensure_processed_data(data_dir: Path) -> None:
@@ -17,17 +18,15 @@ def _ensure_processed_data(data_dir: Path) -> None:
 
 
 def test_processed_train_split_is_normalized():
-    data_dir = Path("data")
-    _ensure_processed_data(data_dir)
+    _ensure_processed_data(_DATA_PATH)
 
-    processed_dir = data_dir / "processed"
-    train_df = pd.read_csv(processed_dir / "train_data.csv")
+    train_df = pd.read_csv((_PROCESSED_DATA_PATH / "train_data.csv"))
 
     numeric_columns = [
         column
         for column in train_df.columns
         if not any(token in column for token in DiabetesHealthDataset.POSSIBLE_TARGET_ATTRIBUTES)
-        and not any(token in column for token in DiabetesHealthDataset.CATEGORICAL_ATTRIBUTES)
+           and not any(token in column for token in DiabetesHealthDataset.CATEGORICAL_ATTRIBUTES)
     ]
 
     assert numeric_columns, "Expected at least one numerical feature column after preprocessing."
@@ -41,9 +40,8 @@ def test_processed_train_split_is_normalized():
 
 
 def test_dataset_handles_single_target_attribute():
-    data_dir = Path("data")
-    _ensure_processed_data(data_dir)
-    dataset = DiabetesHealthDataset(data_dir, target_attributes="diagnosed_diabetes")
+    _ensure_processed_data(_DATA_PATH)
+    dataset = DiabetesHealthDataset(_DATA_PATH)
     dataset.setup("fit")
 
     assert dataset.train_dataset is not None
@@ -54,10 +52,9 @@ def test_dataset_handles_single_target_attribute():
 
 
 def test_dataset_handles_multiple_target_attributes():
-    data_dir = Path("data")
-    _ensure_processed_data(data_dir)
+    _ensure_processed_data(_DATA_PATH)
     target_attributes = ["diabetes_risk_score", "diagnosed_diabetes"]
-    dataset = DiabetesHealthDataset(data_dir, target_attributes=target_attributes)
+    dataset = DiabetesHealthDataset(_DATA_PATH, target_attributes=target_attributes)
     dataset.setup("fit")
 
     assert dataset.train_dataset is not None
@@ -66,10 +63,9 @@ def test_dataset_handles_multiple_target_attributes():
 
 
 def test_dataset_respects_split_sizes():
-    data_dir = Path("data")
-    _ensure_processed_data(data_dir)
+    _ensure_processed_data(_DATA_PATH)
     val_split = 0.15
-    dataset = DiabetesHealthDataset(data_dir, val_split=val_split)
+    dataset = DiabetesHealthDataset(_DATA_PATH, val_split=val_split)
     dataset.setup("fit")
 
     train_df = dataset._load_split("train_data.csv")
@@ -89,12 +85,10 @@ def test_dataset_respects_split_sizes():
 
 
 def test_dataset_allows_feature_subset():
-    data_dir = Path("data")
-    _ensure_processed_data(data_dir)
+    _ensure_processed_data(_DATA_PATH)
     feature_attributes = ["age", "bmi", "gender"]
     dataset = DiabetesHealthDataset(
-        data_dir,
-        target_attributes="diagnosed_diabetes",
+        _DATA_PATH,
         feature_attributes=feature_attributes,
     )
     dataset.setup("fit")
@@ -127,7 +121,6 @@ def test_dataset_allows_feature_subset():
         rtol=1e-5,
         atol=1e-6,
     )
-
 
 @pytest.mark.download
 def test_prepare_data_downloads_and_processes(tmp_path: Path):

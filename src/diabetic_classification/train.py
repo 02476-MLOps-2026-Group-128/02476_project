@@ -1,9 +1,10 @@
 from __future__ import annotations
 
+from datetime import datetime
 from pathlib import Path
 
+import hydra
 import pytorch_lightning as pl
-import typer
 import wandb
 
 from diabetic_classification.data import DiabetesHealthDataset
@@ -11,73 +12,31 @@ from diabetic_classification.model import DiabetesClassifier
 from pytorch_lightning.callbacks import ModelCheckpoint
 from pytorch_lightning.loggers import WandbLogger
 
-DEFAULT_DATA_DIR = Path(__file__).resolve().parents[2] / "data"
 
+@hydra.main(
+    version_base=None,
+    config_path="../../configs/hydra",
+    config_name="config"
+)
+def train(cfg) -> None:
+    """Train the diabetes classifier with PyTorch Lightning, using the specified Hydra configuration."""
+    pl.seed_everything(cfg.trainer.seed, workers=True)
 
-def _parse_attributes(value: str | None) -> list[str] | str | None:
-    """Parse comma-separated attribute names into a list or string.
+    if not cfg.data.target_attributes:
+        raise ValueError("Specify at least one target attribute.")
 
-    Args:
-        value: Comma-separated attribute names or None.
+    timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+    model_dir = Path(cfg.trainer.models_dir) / timestamp
+    model_dir.mkdir(parents=True, exist_ok=True)
 
-    Returns:
-        Parsed attribute list, a single attribute name, or None.
-    """
-    if value is None:
-        return None
-    items = [item.strip() for item in value.split(",") if item.strip()]
-    if not items:
-        raise ValueError("Attribute list cannot be empty.")
-    if len(items) == 1:
-        return items[0]
-    return items
-
-
-def train(
-    data_dir: Path = DEFAULT_DATA_DIR,
-    target_attributes: str = "diagnosed_diabetes",
-    feature_attributes: str | None = None,
-    exclude_feature_attributes: str | None = typer.Option(
-        None, "--exclude-feature-attributes", "--exclude-attributes"
-    ),
-    batch_size: int = 256,
-    max_epochs: int = 5,
-    lr: float = 1e-3,
-    weight_decay: float = 1e-4,
-    num_workers: int = 0,
-    val_split: float = 0.1,
-    seed: int = 42,
-) -> None:
-    """Train the diabetes classifier with PyTorch Lightning.
-
-    Args:
-        data_dir: Base data directory (contains raw/processed subfolders).
-        target_attributes: Target attribute name(s), comma-separated for multiple.
-        feature_attributes: Feature attribute name(s), comma-separated for multiple.
-        exclude_feature_attributes: Feature attribute name(s) to exclude, comma-separated for multiple.
-        batch_size: Batch size for training and evaluation.
-        max_epochs: Maximum number of training epochs.
-        lr: Learning rate.
-        weight_decay: Weight decay for the optimizer.
-        num_workers: DataLoader worker count.
-        val_split: Fraction of training data reserved for validation.
-        seed: Random seed for reproducibility.
-    """
-    pl.seed_everything(seed, workers=True)
-
-    parsed_targets = _parse_attributes(target_attributes)
-    parsed_features = _parse_attributes(feature_attributes)
-    parsed_excludes = _parse_attributes(exclude_feature_attributes)
-    
-    
     data = DiabetesHealthDataset(
-        data_dir=data_dir,
-        batch_size=batch_size,
-        num_workers=num_workers,
-        val_split=val_split,
-        target_attributes=parsed_targets,
-        feature_attributes=parsed_features,
-        exclude_feature_attributes=parsed_excludes,
+        data_dir=Path(cfg.data.data_dir),
+        batch_size=cfg.trainer.batch_size,
+        num_workers=cfg.trainer.num_workers,
+        pin_memory=cfg.trainer.pin_memory,
+        val_split=cfg.trainer.val_split,
+        feature_attributes=cfg.data.feature_attributes,
+        target_attributes=cfg.data.target_attributes,
     )
     data.setup("fit")
 
@@ -87,11 +46,12 @@ def train(
         raise RuntimeError("Training dataset was not prepared during setup.")
 
     model = DiabetesClassifier(
+        cfg=cfg.model,
+        optimizer_cfg=cfg.optimizer,
         input_dim=data.train_dataset.features.shape[1],
-        lr=lr,
-        weight_decay=weight_decay,
         output_dim=len(data.target_columns),
     )
+
     wandb_logger = WandbLogger(project="Diatech", entity="vojtadeconinck-danmarks-tekniske-universitet-dtu", name="diabetes-mlp", log_model=True)
     wandb_logger.experiment.config.update(
         {
@@ -103,18 +63,29 @@ def train(
             "exclude_feature_attributes": parsed_excludes,
         }
     )
-    checkpoint_callback = ModelCheckpoint(dirpath="models", monitor="val/loss", mode="min")
 
     trainer = pl.Trainer(
-        max_epochs=max_epochs,
-        deterministic=True,
-        log_every_n_steps=50,
+        max_epochs=cfg.trainer.max_epochs,
+        default_root_dir=model_dir,
+        deterministic=cfg.trainer.deterministic,
+        log_every_n_steps=cfg.trainer.log_every_n_steps,
+        accelerator=cfg.trainer.accelerator,
+        devices=cfg.trainer.devices,
         logger=wandb_logger,
-        callbacks=[checkpoint_callback],
+        callbacks=[
+            ModelCheckpoint(
+                dirpath=model_dir,
+                filename="model-{epoch:02d}-{val_loss:.4f}",
+                save_top_k=cfg.trainer.model_checkpoint.save_top_k,
+                monitor=cfg.trainer.model_checkpoint.monitor,
+                mode=cfg.trainer.model_checkpoint.mode,
+                save_last=cfg.trainer.model_checkpoint.save_last,
+            )
+        ],
     )
     trainer.fit(model, datamodule=data)
     trainer.test(model, datamodule=data)
 
 
 if __name__ == "__main__":
-    typer.run(train)
+    train()
