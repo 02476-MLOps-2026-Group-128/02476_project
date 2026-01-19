@@ -1,0 +1,7 @@
+name: adam
+
+# Learning rate
+lr: 1e-3 # float
+
+# Weight decay
+weight_decay: 1e-4 # float
