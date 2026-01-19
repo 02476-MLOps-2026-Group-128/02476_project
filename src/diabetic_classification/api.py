@@ -2,14 +2,18 @@ from __future__ import annotations
 
 import json
 import os
+import shutil
+import tempfile
 import time
 from contextlib import asynccontextmanager
 from enum import Enum
 from http import HTTPStatus
+from pathlib import Path
 from typing import Any
 
 import torch
 from fastapi import Depends, FastAPI, HTTPException
+from google.cloud import storage
 from loguru import logger
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
@@ -71,20 +75,56 @@ async def lifespan(app: FastAPI):
     """Load and clean up model on startup and shutdown."""
     global model_registry, device
 
-    logger.info("Loading feature sets")
-    available_feature_sets = os.listdir(settings.feature_sets_dir)
-    feature_sets: dict[str, list[str]] = {}
-    for fs_file in available_feature_sets:
-        if fs_file.endswith(".json"):
-            fs_name = fs_file[:-5]  # Remove .json extension
-            with open(os.path.join(settings.feature_sets_dir, fs_file), "r") as f:
-                feature_sets[fs_name] = json.load(f)
-    logger.info(f"Available feature sets: {available_feature_sets}")
+    # 1. Determine the Base Path for Artifacts
+    aip_storage_uri = os.environ.get("AIP_STORAGE_URI")
+    tmp_dir = None
 
-    logger.info("Loading model configurations")
-    with open(settings.model_configs_path, "r") as f:
-        model_configs: dict[str, dict[str,
-                                      dict[str, dict[str, Any]]]] = json.load(f)
+    if aip_storage_uri:
+        logger.info(f"Running in Vertex AI. Downloading weights from: {aip_storage_uri}")
+        # Create a temporary directory to store downloaded artifacts
+        tmp_dir = tempfile.mkdtemp()
+        base_path = Path(tmp_dir)
+
+        # Download everything from the GCS bucket path to our temp folder
+        # Expected URI format: gs://bucket-name/path/to/model/v1/
+        bucket_name = aip_storage_uri.replace("gs://", "").split("/")[0]
+        prefix = "/".join(aip_storage_uri.replace("gs://", "").split("/")[1:])
+
+        storage_client = storage.Client()
+        bucket = storage_client.bucket(bucket_name)
+        blobs = bucket.list_blobs(prefix=prefix)
+
+        for blob in blobs:
+            # Create local subdirectories if they exist in GCS
+            relative_path = os.path.relpath(blob.name, prefix)
+            local_file_path = base_path / relative_path
+            local_file_path.parent.mkdir(parents=True, exist_ok=True)
+
+            if not blob.name.endswith("/"):  # Skip directory markers
+                blob.download_to_filename(str(local_file_path))
+                logger.debug(f"Downloaded: {blob.name} -> {local_file_path}")
+
+        # Update paths to point to the temporary local directory
+        model_configs_path = base_path / "models.json"
+        feature_sets_dir = base_path / "feature_sets"
+    else:
+        logger.info("Running locally. Using local configuration paths.")
+        base_path = Path(".")  # Current directory
+        model_configs_path = base_path / settings.model_configs_path
+        feature_sets_dir = base_path / settings.feature_sets_dir
+
+    # 2. Load Feature Sets (Using dynamic paths)
+    feature_sets: dict[str, list[str]] = {}
+    if feature_sets_dir.exists():
+        for fs_file in os.listdir(feature_sets_dir):
+            if fs_file.endswith(".json"):
+                fs_name = fs_file[:-5]
+                with open(feature_sets_dir / fs_file, "r") as f:
+                    feature_sets[fs_name] = json.load(f)
+
+    # 3. Load Model Configurations
+    with open(model_configs_path, "r") as f:
+        model_configs = json.load(f)
 
     logger.info("Loading models")
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
@@ -96,44 +136,45 @@ async def lifespan(app: FastAPI):
         model_registry[problem_type] = {}
         for model_type, feature_set_configs in model_types.items():
             model_registry[problem_type][model_type] = {}
-            for feature_set_name, config in feature_set_configs.items():
-                logger.info(
-                    f"Loading {problem_type}/{model_type}/{feature_set_name}")
+            for feature_set_name, version_configs in feature_set_configs.items():
+                model_registry[problem_type][model_type][feature_set_name] = {}
+                for version, config in version_configs.items():
+                    logger.info(f"Loading {problem_type}/{model_type}/{feature_set_name}/{version}")
 
-                # Create model based on type
-                if model_type == ModelType.MLP.value:
-                    model = TabularMLP(
-                        input_dim=config["input_dim"],
-                        hidden_dims=tuple(config["hidden_dims"]),
-                        dropout=config["dropout"],
-                        output_dim=config["output_dim"],
-                    )
-                    model.to(device)
-                    model.load_state_dict(
-                        torch.load(config["model_path"], map_location=device)
-                    )
-                    model.eval()
+                    # Create model based on type
+                    if model_type == ModelType.MLP.value:
+                        model = TabularMLP(
+                            input_dim=config["input_dim"],
+                            hidden_dims=tuple(config["hidden_dims"]),
+                            dropout=config["dropout"],
+                            output_dim=config["output_dim"],
+                        )
+                        model.to(device)
+                        model.load_state_dict(torch.load(config["model_path"], map_location=device))
+                        model.eval()
 
-                    # Store in registry
-                    model_info: dict[str, Any] = {
-                        "model": model,
-                        "input_dim": config["input_dim"],
-                        "output_dim": config["output_dim"],
-                        "task_type": TaskType[config["task_type"].upper()],
-                        "features": feature_sets[feature_set_name],
-                    }
-                else:
-                    logger.error(f"Unknown model type: {model_type}")
-                    raise ValueError(
-                        f"Model type '{model_type}' is not supported")
+                        # Store in registry
+                        model_info: dict[str, Any] = {
+                            "model": model,
+                            "input_dim": config["input_dim"],
+                            "output_dim": config["output_dim"],
+                            "task_type": TaskType[config["task_type"].upper()],
+                            "features": feature_sets[feature_set_name],
+                        }
+                    else:
+                        logger.error(f"Unknown model type: {model_type}")
+                        raise ValueError(f"Model type '{model_type}' is not supported")
 
-                model_registry[problem_type][model_type][feature_set_name] = model_info
+                    model_registry[problem_type][model_type][feature_set_name][version] = model_info
 
     logger.info("Model registry initialized")
     yield
 
     logger.info("Cleaning up")
     del model_registry, device
+
+    if tmp_dir and os.path.exists(tmp_dir):
+        shutil.rmtree(tmp_dir)
 
 
 app = FastAPI(lifespan=lifespan)
@@ -153,11 +194,7 @@ def get_device() -> torch.device:
 async def read_root(registry: ModelRegistry = Depends(get_model_registry)) -> dict[str, Any]:
     """Enhanced health check endpoint with API status information."""
     # Count available models
-    model_count = sum(
-        len(feature_sets)
-        for model_types in registry.values()
-        for feature_sets in model_types.values()
-    )
+    model_count = sum(len(feature_sets) for model_types in registry.values() for feature_sets in model_types.values())
 
     return {
         "status": "healthy",
@@ -179,9 +216,7 @@ async def list_models(registry: ModelRegistry = Depends(get_model_registry)) -> 
     registry_overview = {
         problem: {
             model_type: {
-                feature_set: {
-                    key: value for key, value in model_info.items() if key != "model"
-                }
+                feature_set: {key: value for key, value in model_info.items() if key != "model"}
                 for feature_set, model_info in feature_sets.items()
             }
             for model_type, feature_sets in model_types.items()
@@ -193,12 +228,12 @@ async def list_models(registry: ModelRegistry = Depends(get_model_registry)) -> 
 
 @app.post("/predict/{problem_type}/{model_type}/{feature_set}/")
 async def predict(
-        problem_type: ProblemType,
-        model_type: ModelType,
-        feature_set: FeatureSet,
-        features: dict[str, float],
-        registry: ModelRegistry = Depends(get_model_registry),
-        device: torch.device = Depends(get_device),
+    problem_type: ProblemType,
+    model_type: ModelType,
+    feature_set: FeatureSet,
+    features: dict[str, float],
+    registry: ModelRegistry = Depends(get_model_registry),
+    device: torch.device = Depends(get_device),
 ) -> dict[str, Any]:
     """Make a prediction using the specified model."""
     if problem_type.value not in registry:
@@ -259,8 +294,7 @@ async def predict(
     start_time = time.perf_counter()
 
     with torch.no_grad():
-        input_tensor = torch.tensor(
-            [ordered_features], dtype=torch.float32).to(device)
+        input_tensor = torch.tensor([ordered_features], dtype=torch.float32).to(device)
         logits = model(input_tensor)
         if task_type == TaskType.BINARY_CLASSIFICATION:
             prob_class_1 = float(torch.sigmoid(logits).cpu().item())
@@ -275,7 +309,7 @@ async def predict(
 
     inference_time = time.perf_counter() - start_time
     logger.debug(
-        f"Prediction completed in {inference_time*1000:.2f}ms for "
+        f"Prediction completed in {inference_time * 1000:.2f}ms for "
         f"{problem_type.value}/{model_type.value}/{feature_set.value}"
     )
     logger.info(
