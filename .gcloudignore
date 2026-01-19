@@ -1,0 +1,24 @@
+# Ignore everything by default
+**
+
+# Explicitly include files needed for the Docker build
+!uv.lock
+!pyproject.toml
+!README.md
+
+# Include source code
+!src/**
+!src/
+
+# Include training data
+!data/**
+!data/
+
+# Include configs
+!configs/**
+!configs/
+
+# Include Dockerfile and cloudbuild config
+!dockerfiles/
+!dockerfiles/**
+!cloudbuild.yaml
