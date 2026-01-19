@@ -4,25 +4,13 @@ import json
 from datetime import datetime
 from pathlib import Path
 
+import hydra
 import pytorch_lightning as pl
 import torch
-import typer
 from pytorch_lightning.callbacks import ModelCheckpoint
 
 from diabetic_classification.data import DiabetesHealthDataset
 from diabetic_classification.model import DiabetesClassifier
-
-DEFAULT_DATA_DIR = Path(__file__).resolve().parents[2] / "data"
-
-
-def csv_list(value: str | None) -> list[str] | None:
-    """Parse a comma-separated string into a list of strings."""
-    if value is None:
-        return None
-    items = [item.strip() for item in value.split(",") if item.strip()]
-    if not items:
-        raise typer.BadParameter("Provide at least one non-blank value.")
-    return items
 
 
 def compute_pos_weight(labels: torch.Tensor) -> torch.Tensor:
@@ -40,6 +28,7 @@ def compute_pos_weight(labels: torch.Tensor) -> torch.Tensor:
     Raises:
     ------
         ValueError: If the targets are not binary or if any class is missing.
+
     """
     tensor = labels.detach().float()
     if tensor.ndim == 1:
@@ -54,157 +43,64 @@ def compute_pos_weight(labels: torch.Tensor) -> torch.Tensor:
     return negatives / positives
 
 
-def train(
-    data_dir: Path = DEFAULT_DATA_DIR,
-    target_attributes: str = typer.Option(
-        "diagnosed_diabetes",
-        "--targets",
-        metavar="a,b,c",
-        help="Comma-separated target attribute name(s).",
-    ),
-    feature_attributes: str | None = typer.Option(
-        None,
-        "--feature-attributes",
-        metavar="a,b,c",
-        help="Comma-separated feature attributes.",
-    ),
-    feature_config: Path | None = typer.Option(
-        None,
-        "--feature-config",
-        exists=True,
-        file_okay=True,
-        dir_okay=False,
-        readable=True,
-        resolve_path=True,
-        help="Path to a JSON file listing feature attributes.",
-    ),
-    exclude_feature_attributes: str | None = typer.Option(
-        None,
-        "--exclude-feature-attributes",
-        metavar="a,b,c",
-        help="Comma-separated features to remove.",
-    ),
-    batch_size: int = 256,
-    max_epochs: int = 5,
-    lr: float = 1e-3,
-    weight_decay: float = 1e-4,
-    num_workers: int = 0,
-    val_split: float = 0.1,
-    seed: int = 42,
-    models_dir: Path = Path("models"),
-    use_pos_weight: bool = typer.Option(
-        True,
-        "--use-pos-weight",
-        help="Compute positive-class weights from the training targets for BCE loss.",
-    ),
-) -> None:
-    """
-    Train the diabetes classifier with PyTorch Lightning.
+@hydra.main(version_base=None, config_path="../../configs/hydra", config_name="config")
+def train(cfg) -> None:
+    """Train the diabetes classifier with PyTorch Lightning, using the specified Hydra configuration."""
+    pl.seed_everything(cfg.trainer.seed, workers=True)
 
-    Args:
-    ----
-        data_dir: Base data directory (contains raw/processed subfolders).
-        target_attributes: Target attribute name(s), comma-separated for multiple.
-        feature_attributes: Feature attribute name(s), comma-separated for multiple.
-        feature_config: Path to JSON file with an explicit list of feature attributes.
-        exclude_feature_attributes: Feature attribute name(s) to exclude, comma-separated for multiple.
-        batch_size: Batch size for training and evaluation.
-        max_epochs: Maximum number of training epochs.
-        lr: Learning rate.
-        weight_decay: Weight decay for the optimizer.
-        num_workers: DataLoader worker count.
-        val_split: Fraction of training data reserved for validation.
-        seed: Random seed for reproducibility.
-        models_dir: Directory to save trained models.
-        use_pos_weight: Whether to compute positive-class weights from the training targets.
-    """
-    pl.seed_everything(seed, workers=True)
-
-    parsed_targets = csv_list(target_attributes)
-    if not parsed_targets:
-        raise typer.BadParameter("Specify at least one target attribute.")
-    normalized_targets: list[str] | str = parsed_targets if len(parsed_targets) > 1 \
-        else parsed_targets[0]
-
-    parsed_features = csv_list(feature_attributes)
-    if feature_config is not None:
-        if parsed_features is not None:
-            raise typer.BadParameter(
-                "Use either --feature-attributes or --feature-config, not both.")
-        try:
-            payload = json.loads(feature_config.read_text())
-        except OSError as exc:
-            raise typer.BadParameter(
-                f"Unable to read feature config: {exc}") from exc
-        except json.JSONDecodeError as exc:
-            raise typer.BadParameter(
-                f"Feature config must be valid JSON: {exc}") from exc
-        if not isinstance(payload, list):
-            raise typer.BadParameter(
-                "Feature config must be a JSON list of feature names.")
-        parsed_features = []
-        for attribute in payload:
-            if not isinstance(attribute, str) or not attribute.strip():
-                raise typer.BadParameter(
-                    "Feature config entries must be non-empty strings.")
-            parsed_features.append(attribute.strip())
-        if not parsed_features:
-            raise typer.BadParameter(
-                "Feature config must describe at least one feature.")
-
-    parsed_excludes = csv_list(exclude_feature_attributes)
+    if not cfg.data.target_attributes:
+        raise ValueError("Specify at least one target attribute.")
 
     timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
-    model_dir = models_dir / timestamp
+    model_dir = Path(cfg.trainer.models_dir) / timestamp
     model_dir.mkdir(parents=True, exist_ok=True)
 
     data = DiabetesHealthDataset(
-        data_dir=data_dir,
-        batch_size=batch_size,
-        num_workers=num_workers,
-        val_split=val_split,
-        target_attributes=normalized_targets,
-        feature_attributes=parsed_features,
-        exclude_feature_attributes=parsed_excludes,
+        data_dir=Path(cfg.data.data_dir),
+        batch_size=cfg.trainer.batch_size,
+        num_workers=cfg.trainer.num_workers,
+        pin_memory=cfg.trainer.pin_memory,
+        val_split=cfg.trainer.val_split,
+        feature_attributes=cfg.data.feature_attributes,
+        target_attributes=cfg.data.target_attributes,
     )
     data.setup("fit")
 
     if data.target_columns is None:
-        raise RuntimeError(
-            "Target columns were not resolved during dataset setup.")
+        raise RuntimeError("Target columns were not resolved during dataset setup.")
     if data.train_dataset is None:
         raise RuntimeError("Training dataset was not prepared during setup.")
 
     pos_weight_tensor: torch.Tensor | None = None
-    if use_pos_weight:
+    if cfg.trainer.use_pos_weight:
         try:
             pos_weight_tensor = compute_pos_weight(data.train_dataset.labels)
         except ValueError as exc:
-            raise typer.BadParameter(str(exc)) from exc
+            raise ValueError(str(exc)) from exc
 
     model = DiabetesClassifier(
+        cfg=cfg.model,
+        optimizer_cfg=cfg.optimizer,
         input_dim=data.train_dataset.features.shape[1],
-        lr=lr,
-        weight_decay=weight_decay,
         output_dim=len(data.target_columns),
         pos_weight=pos_weight_tensor,
     )
 
     trainer = pl.Trainer(
-        max_epochs=max_epochs,
-        default_root_dir=models_dir,
-        deterministic=True,
-        log_every_n_steps=50,
-        accelerator="auto",
-        devices=1,
+        max_epochs=cfg.trainer.max_epochs,
+        default_root_dir=model_dir,
+        deterministic=cfg.trainer.deterministic,
+        log_every_n_steps=cfg.trainer.log_every_n_steps,
+        accelerator=cfg.trainer.accelerator,
+        devices=cfg.trainer.devices,
         callbacks=[
             ModelCheckpoint(
                 dirpath=model_dir,
                 filename="model-{epoch:02d}-{val_loss:.4f}",
-                save_top_k=2,
-                monitor="val_loss",
-                mode="min",
-                save_last=True,
+                save_top_k=cfg.trainer.model_checkpoint.save_top_k,
+                monitor=cfg.trainer.model_checkpoint.monitor,
+                mode=cfg.trainer.model_checkpoint.mode,
+                save_last=cfg.trainer.model_checkpoint.save_last,
             )
         ],
     )
@@ -213,4 +109,4 @@ def train(
 
 
 if __name__ == "__main__":
-    typer.run(train)
+    train()

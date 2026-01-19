@@ -15,6 +15,7 @@ class TabularMLP(nn.Module):
         hidden_dims: Hidden layer sizes for the MLP.
         dropout: Dropout probability for hidden layers.
         output_dim: Number of output units (targets).
+
     """
 
     def __init__(
@@ -47,6 +48,7 @@ class TabularMLP(nn.Module):
         Returns:
         -------
             Model logits with shape (batch, output_dim).
+
         """
         return self.net(x)
 
@@ -57,32 +59,27 @@ class DiabetesClassifier(LightningModule):
 
     Args:
     ----
+        cfg: Configuration dictionary for the model.
         input_dim: Number of input features.
-        lr: Learning rate.
-        weight_decay: Weight decay for the optimizer.
         output_dim: Number of output units (targets).
-        hidden_dims: Hidden layer sizes for the MLP.
-        dropout: Dropout probability for hidden layers.
+
     """
 
     def __init__(
         self,
+        cfg,
+        optimizer_cfg,
         input_dim: int,
-        lr: float = 1e-3,
-        weight_decay: float = 1e-4,
         output_dim: int = 1,
-        hidden_dims: tuple[int, int] = (128, 64),
-        dropout: float = 0.2,
         pos_weight: torch.Tensor | None = None,
     ) -> None:
         super().__init__()
-        self.lr = lr
-        self.weight_decay = weight_decay
+        self.optimizer_cfg = optimizer_cfg
         self.save_hyperparameters()
         self.model = TabularMLP(
             input_dim=input_dim,
-            hidden_dims=hidden_dims,
-            dropout=dropout,
+            hidden_dims=tuple(cfg.hidden_dims),
+            dropout=cfg.dropout,
             output_dim=output_dim,
         )
         weight_tensor: torch.Tensor | None = None
@@ -106,6 +103,7 @@ class DiabetesClassifier(LightningModule):
         Returns:
         -------
             Logits with shape (batch, output_dim).
+
         """
         return self.model(x)
 
@@ -121,6 +119,7 @@ class DiabetesClassifier(LightningModule):
         Returns:
         -------
             Scalar loss tensor.
+
         """
         x, y = batch
         logits = self(x)
@@ -150,9 +149,24 @@ class DiabetesClassifier(LightningModule):
         self._shared_step(batch, "test")
 
     def configure_optimizers(self) -> torch.optim.Optimizer:
-        """Configure the optimizer."""
-        return torch.optim.Adam(
-            self.parameters(),
-            lr=self.lr,
-            weight_decay=self.weight_decay,
-        )
+        """Configure the optimizer, based on the provided configuration."""
+        opt_name = self.optimizer_cfg.name.lower()
+        lr = self.optimizer_cfg.get("lr")
+        weight_decay = self.optimizer_cfg.get("weight_decay")
+
+        if opt_name == "adam":
+            return torch.optim.Adam(
+                self.parameters(),
+                lr=lr,
+                weight_decay=weight_decay,
+            )
+        elif opt_name == "sgd":
+            momentum = self.optimizer_cfg.get("momentum")
+            return torch.optim.SGD(
+                self.parameters(),
+                lr=lr,
+                weight_decay=weight_decay,
+                momentum=momentum,
+            )
+        else:
+            raise ValueError(f"Unsupported optimizer: {opt_name}")

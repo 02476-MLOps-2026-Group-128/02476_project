@@ -1,0 +1,36 @@
+# Batch size for training and evaluation.
+batch_size: 256 # int
+
+# Maximum number of training epochs.
+max_epochs: 5 # int
+
+# DataLoader worker count.
+num_workers: 5 # int
+
+# Fraction of training data reserved for validation.
+val_split: 0.1 # float
+
+# Whether loaders should pin memory for CUDA training
+pin_memory: false # bool
+
+# Random seed for reproducibility.
+seed: 42 # int
+
+# Directory to save trained models.
+models_dir: models # Path as string, should be converted to Path
+
+deterministic: true # bool
+
+log_every_n_steps: 50 # int
+
+accelerator: auto # str
+
+devices: 1 # int
+
+use_pos_weight: true # bool
+
+model_checkpoint:
+    save_top_k: 2 # int
+    monitor: val_loss # str
+    mode: min # str
+    save_last: true # bool
