@@ -15,14 +15,15 @@ class TabularMLP(nn.Module):
         hidden_dims: Hidden layer sizes for the MLP.
         dropout: Dropout probability for hidden layers.
         output_dim: Number of output units (targets).
+
     """
 
     def __init__(
-            self,
-            input_dim: int,
-            hidden_dims: tuple[int, int],
-            dropout: float,
-            output_dim: int,
+        self,
+        input_dim: int,
+        hidden_dims: tuple[int, int],
+        dropout: float,
+        output_dim: int,
     ) -> None:
         super().__init__()
         layers: list[nn.Module] = []
@@ -47,6 +48,7 @@ class TabularMLP(nn.Module):
         Returns:
         -------
             Model logits with shape (batch, output_dim).
+
         """
         return self.net(x)
 
@@ -60,14 +62,15 @@ class DiabetesClassifier(LightningModule):
         cfg: Configuration dictionary for the model.
         input_dim: Number of input features.
         output_dim: Number of output units (targets).
+
     """
 
     def __init__(
-            self,
-            cfg,
-            optimizer_cfg,
-            input_dim: int,
-            output_dim: int = 1,
+        self,
+        cfg,
+        optimizer_cfg,
+        input_dim: int,
+        output_dim: int = 1,
     ) -> None:
         super().__init__()
         self.optimizer_cfg = optimizer_cfg
@@ -91,6 +94,7 @@ class DiabetesClassifier(LightningModule):
         Returns:
         -------
             Logits with shape (batch, output_dim).
+
         """
         return self.model(x)
 
@@ -106,6 +110,7 @@ class DiabetesClassifier(LightningModule):
         Returns:
         -------
             Scalar loss tensor.
+
         """
         x, y = batch
         logits = self(x)
