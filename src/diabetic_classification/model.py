@@ -71,7 +71,6 @@ class DiabetesClassifier(LightningModule):
     ) -> None:
         super().__init__()
         self.optimizer_cfg = optimizer_cfg
-        print(self.optimizer_cfg)
         self.save_hyperparameters()
         self.model = TabularMLP(
             input_dim=input_dim,
