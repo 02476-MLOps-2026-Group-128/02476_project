@@ -19,7 +19,10 @@ readme = "README.md"
 requires-python = ">=3.12"
 dependencies = [
     "click==8.1.7",
+    "dvc>=3.66.1",
+    "dvc-gs>=3.0.2",
     "fastapi==0.115.6",
+    "hydra-core>=1.3.2",
     "kaggle>=1.8.3",
     "kagglehub[pandas-datasets]>=0.4.0",
     "loguru>=0.7.3",
@@ -41,9 +44,9 @@ dev = [
     "invoke==2.2.0",
     "mkdocs-material==9.4.6",
     "mkdocs==1.6.1",
-    "pre-commit==4.1.0",
+    "pre-commit==4.5.1",
     "pytest==8.3.4",
-    "ruff==0.1.3",
+    "ruff==0.14.13",
     "mkdocstrings-python==1.12.2",
     "ipykernel>=7.1.0",
     "mypy>=1.19.1",
@@ -66,6 +69,15 @@ explicit = true
 
 [tool.ruff]
 line-length = 120
+lint.select = ["I", "D", "N", "E", "W"] # Import, Docstring, Naming, Error, Warning
+lint.ignore = [
+    "D100", # Ignore missing docstring in public module
+    "D104", # Ignore missing docstring in public package
+    "D107", # Ignore missing docstring in __init__
+    "D203", # Ignore 1 blank line required before class docstring
+    "D212", # Ignore multi-line docstring summary should start at the first line
+]
+per-file-ignores = { "tests/*" = ["D"]} # Ignore all docstring errors in tests, since the test names are descriptive enough
 
 [tool.coverage.run]
 omit = ["tests/*", "tmp/*", "*/_remote_module_non_scriptable.py"]

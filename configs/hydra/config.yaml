@@ -1,0 +1,10 @@
+defaults:
+  - data: default
+  - trainer: default
+  - model: tabular_classifier
+  - optimizer: adam
+  - paths: default
+
+hydra:
+  run:
+    dir: ${paths.project_root}/models/${now:%Y%m%d_%H%M%S}/hydra
