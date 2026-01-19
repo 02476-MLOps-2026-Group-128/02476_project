@@ -1,0 +1,7 @@
+# Hidden layer sizes for the MLP, should be converted to tuple[int, int]
+hidden_dims:
+  - 128
+  - 64
+
+# Dropout probability for hidden layers
+dropout: 0.2 # float

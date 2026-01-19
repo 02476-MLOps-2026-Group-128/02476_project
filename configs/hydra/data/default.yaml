@@ -1,0 +1,55 @@
+# Base data directory (contains raw/processed subfolders).
+data_dir: ${paths.project_root}/data # string, should be converted to Path
+
+# Target attribute names
+target_attributes: # list of strings
+  - diagnosed_diabetes
+#  - diabetes_stage_no_diabetes
+#  - diabetes_stage_pre-diabetes
+#  - diabetes_stage_type_1
+#  - diabetes_stage_type_2
+#  - diabetes_risk_score
+
+
+# Feature attribute names
+feature_attributes: # list of strings
+  - age
+  - alcohol_consumption_per_week
+  - physical_activity_minutes_per_week
+  - diet_score
+  - sleep_hours_per_day
+  - screen_time_hours_per_day
+  - family_history_diabetes
+  - hypertension_history
+  - cardiovascular_history
+  - bmi
+  - waist_to_hip_ratio
+  - systolic_bp
+  - diastolic_bp
+  - heart_rate
+  - cholesterol_total
+  - hdl_cholesterol
+  - ldl_cholesterol
+  - triglycerides
+  - glucose_postprandial
+  - glucose_fasting
+  - insulin_level
+  - hba1c
+  - gender_male
+  - gender_other
+  - ethnicity_black
+  - ethnicity_hispanic
+  - ethnicity_other
+  - ethnicity_white
+  - education_level_highschool
+  - education_level_no_formal
+  - education_level_postgraduate
+  - income_level_low
+  - income_level_lower-middle
+  - income_level_middle
+  - income_level_upper-middle
+  - employment_status_retired
+  - employment_status_student
+  - employment_status_unemployed
+  - smoking_status_former
+  - smoking_status_never
