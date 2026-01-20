@@ -1,6 +1,10 @@
 # Diabetes classification
 
-
+## Development
+**Installing pre-commit config:**
+```bash
+uv run pre-commit install
+```
 
 
 ## Project structure
@@ -130,7 +134,7 @@ checklist for the exam. The parenthesis at the end indicates what module the bul
 ## Training
 Run: uv run python -m diabetic_classification.train
 
-The training script uses Hydra for configuration management. The configuration files are located at `configs/hydra`. The parameters used are logged together with the model.
+The training script uses Hydra for hyperparameter configuration management. The configuration files are located at `configs/hydra`. The parameters used are logged together with the model, in a 'hydra' subfolder.
 
 ### Remotely building the docker image
 It is possible to build the training docker image remotely in GCP using Cloud Build. This is done automatically when new code is pushed to the main branch (`.github/workflows/tests.yaml`), but it can also be triggered manually by running the following command:
