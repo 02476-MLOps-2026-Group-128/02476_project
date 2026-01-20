@@ -9,6 +9,7 @@ COPY pyproject.toml pyproject.toml
 COPY README.md README.md
 COPY src src/
 COPY data data/
+COPY configs configs/
 
 RUN --mount=type=cache,target=/root/.cache/uv uv sync
 
