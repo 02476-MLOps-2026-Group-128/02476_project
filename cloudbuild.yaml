@@ -16,6 +16,28 @@ steps:
     args:
       - push
       - europe-west4-docker.pkg.dev/diabetic-classification-484510/container-registry/train:latest
+    waitFor:
+      - Build training container image
+
+  - name: gcr.io/cloud-builders/docker
+    id: Build FastAPI container image
+    env:
+      - DOCKER_BUILDKIT=1
+    args:
+      - build
+      - -f
+      - dockerfiles/fastapi.dockerfile
+      - -t
+      - europe-west4-docker.pkg.dev/diabetic-classification-484510/container-registry/fastapi:latest
+      - .
+
+  - name: gcr.io/cloud-builders/docker
+    id: Push FastAPI container image
+    args:
+      - push
+      - europe-west4-docker.pkg.dev/diabetic-classification-484510/container-registry/fastapi:latest
+    waitFor:
+      - Build FastAPI container image
 
 options:
   logging: CLOUD_LOGGING_ONLY
