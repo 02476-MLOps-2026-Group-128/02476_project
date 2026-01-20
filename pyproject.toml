@@ -58,15 +58,15 @@ dev = [
 
 [tool.uv.sources]
 torch = [
-    { index = "pytorch-cpu" },
+    { index = "pytorch-cu124" },
 ]
 torchvision = [
-    { index = "pytorch-cpu" },
+    { index = "pytorch-cu124" },
 ]
 
 [[tool.uv.index]]
-name = "pytorch-cpu"
-url = "https://download.pytorch.org/whl/cpu"
+name = "pytorch-cu124"
+url = "https://download.pytorch.org/whl/cu124"
 explicit = true
 
 [tool.ruff]
@@ -79,7 +79,7 @@ lint.ignore = [
     "D203", # Ignore 1 blank line required before class docstring
     "D212", # Ignore multi-line docstring summary should start at the first line
 ]
-per-file-ignores = { "tests/*" = ["D"]} # Ignore all docstring errors in tests, since the test names are descriptive enough
+lint.per-file-ignores = { "tests/*" = ["D"]} # Ignore all docstring errors in tests, since the test names are descriptive enough
 
 [tool.coverage.run]
 omit = ["tests/*", "tmp/*", "*/_remote_module_non_scriptable.py"]
@@ -110,4 +110,12 @@ ignore_missing_imports = true
 
 [[tool.mypy.overrides]]
 module = "sklearn.*"
+ignore_missing_imports = true
+
+[[tool.mypy.overrides]]
+module = "google"
+ignore_missing_imports = true
+
+[[tool.mypy.overrides]]
+module = "google.*"
 ignore_missing_imports = true
