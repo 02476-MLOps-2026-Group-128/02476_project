@@ -13,12 +13,31 @@ jobs:
     runs-on: ${{ matrix.operating-system }}
     strategy:
       matrix:
-        operating-system: [ "ubuntu-latest", "windows-latest", "macos-latest" ]
-        python-version: [ "3.12" ]
+        operating-system: ["ubuntu-latest", "windows-latest", "macos-latest"]
+        python-version: ["3.12"]
+
+    env:
+      BUCKET_NAME: diabetic-classification-model-bucket
 
     steps:
       - name: Checkout code
         uses: actions/checkout@v6
+
+      - name: Auth with GCP
+        uses: google-github-actions/auth@v2
+        with:
+          credentials_json: ${{ secrets.GCLOUD_SERVICE_KEY }}
+
+      - name: Set up Cloud SDK
+        uses: google-github-actions/setup-gcloud@v2
+
+      - name: Download inference models from GCS
+        run: |
+          gcloud storage cp -r gs://$BUCKET_NAME/models/ ./models/api_models
+
+      - name: Download inference config from GCS
+        run: |
+          gcloud storage cp -r gs://$BUCKET_NAME/configs/ ./configs
 
       - name: Setup uv
         uses: astral-sh/setup-uv@v7
