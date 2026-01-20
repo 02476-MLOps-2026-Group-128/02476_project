@@ -22,10 +22,10 @@ class DiabetesTabularDataset(Dataset):
     """Torch dataset that wraps tabular diabetes data."""
 
     def __init__(
-            self,
-            data: pd.DataFrame,
-            target_attributes: Sequence[str],
-            feature_columns: Optional[Sequence[str]] = None,
+        self,
+        data: pd.DataFrame,
+        target_attributes: Sequence[str],
+        feature_columns: Optional[Sequence[str]] = None,
     ) -> None:
         """
         Initialize tensors for features and labels.
@@ -35,6 +35,7 @@ class DiabetesTabularDataset(Dataset):
             data: Preprocessed pandas DataFrame containing one data split.
             target_attributes: Attribute names that should be treated as the supervised target.
             feature_columns: Optional explicit feature column selection to retain.
+
         """
         if not target_attributes:
             raise ValueError("target_attributes must contain at least one column name.")
@@ -95,6 +96,7 @@ class DiabetesHealthDataset(LightningDataModule):
         >>> dm.prepare_data()  # downloads + preprocesses once
         >>> dm.setup("fit")    # materializes train/val datasets
         >>> batch = next(iter(dm.train_dataloader()))
+
     """
 
     KAGGLE_DS_NAME: str = "mohankrishnathalla/diabetes-health-indicators-dataset"
@@ -159,14 +161,14 @@ class DiabetesHealthDataset(LightningDataModule):
     ]
 
     def __init__(
-            self,
-            data_dir: Path | str,
-            batch_size: int = 256,
-            num_workers: int = 5,
-            pin_memory: bool = False,
-            val_split: float = 0.1,
-            feature_attributes: Sequence[str] | None = None,
-            target_attributes: Sequence[str] = ("diagnosed_diabetes",),
+        self,
+        data_dir: Path | str,
+        batch_size: int = 256,
+        num_workers: int = 5,
+        pin_memory: bool = False,
+        val_split: float = 0.1,
+        feature_attributes: Sequence[str] | None = None,
+        target_attributes: Sequence[str] = ("diagnosed_diabetes",),
     ) -> None:
         """
         Initialize data module configuration.
@@ -180,6 +182,7 @@ class DiabetesHealthDataset(LightningDataModule):
             val_split: Fraction of the training data to reserve for validation.
             feature_attributes: Feature attribute(s) to retain after preprocessing, defaults to all.
             target_attributes: Supervised target attribute(s) to predict/stratify (defaults to 'diagnosed_diabetes').
+
         """
         super().__init__()
 
@@ -304,6 +307,7 @@ class DiabetesHealthDataset(LightningDataModule):
         Args:
         ----
             output_folder: Optional override for the processed data directory.
+
         """
         raw_dir = self.data_dir / "raw"
         processed_dir = output_folder or (self.data_dir / "processed")
@@ -339,7 +343,7 @@ class DiabetesHealthDataset(LightningDataModule):
         logger.info("Completed download and extracted files to {}", dest_path)
 
     def __preprocess_data(
-            self, raw_data_dir: Path = Path("data/raw"), output_folder: Path = Path("data/processed")
+        self, raw_data_dir: Path = Path("data/raw"), output_folder: Path = Path("data/processed")
     ) -> None:
         """Preprocess the raw data and save it to the output folder."""
         logger.info("Preprocessing raw data from {} into {}", raw_data_dir, output_folder)
@@ -371,7 +375,7 @@ class DiabetesHealthDataset(LightningDataModule):
             col
             for col in train_df.columns
             if not any(class_col in col for class_col in self.POSSIBLE_TARGET_ATTRIBUTES)
-               and not any(cat_col in col for cat_col in self.CATEGORICAL_ATTRIBUTES)
+            and not any(cat_col in col for cat_col in self.CATEGORICAL_ATTRIBUTES)
         ]
 
         if numerical_feature_columns:
@@ -447,7 +451,7 @@ class DiabetesHealthDataset(LightningDataModule):
         return self.target_columns
 
     def _build_stratify_series(
-            self, df: pd.DataFrame, attributes: Optional[Sequence[str]] = None
+        self, df: pd.DataFrame, attributes: Optional[Sequence[str]] = None
     ) -> Optional[pd.Series]:
         """Return a 1D series for stratified splitting or None if not applicable."""
         attributes = [attr for attr in (attributes or []) if attr]
@@ -511,11 +515,7 @@ class DiabetesHealthDataset(LightningDataModule):
         return csv.read_csv(processed_data_dir / filename).to_pandas(self_destruct=True)
 
 
-@hydra.main(
-    version_base=None,
-    config_path="../../configs/hydra",
-    config_name="config"
-)
+@hydra.main(version_base=None, config_path="../../configs/hydra", config_name="config")
 def prepare_dataset(cfg) -> None:
     """CLI helper to prepare raw data into processed splits using Hydra config."""
     data_path = Path(cfg.data.data_dir)
