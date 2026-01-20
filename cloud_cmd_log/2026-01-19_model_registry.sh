@@ -8,11 +8,8 @@ gcloud storage buckets create gs://$BUCKET_NAME/ \
     --location=$REGION \
     --uniform-bucket-level-access
 
-# Upload a local model folder to the bucket
-gcloud storage cp -r ./models/diagnosed_diabetes/MLP/feature_set1/v1/ gs://$BUCKET_NAME/models/diagnosed_diabetes/MLP/feature_set1/
-
-# Upload the models.json to the root of your model folder
-gcloud storage cp configs/models.json gs://$BUCKET_NAME/configs/models.json
+# Upload a local api models to the bucket
+gcloud storage cp -r ./models/api_models/ gs://$BUCKET_NAME/models/
 
 # Upload the entire feature_sets directory
 gcloud storage cp -r configs/feature_sets/ gs://$BUCKET_NAME/configs/
