@@ -58,10 +58,17 @@ dev = [
 
 [tool.uv.sources]
 torch = [
-    { index = "pytorch-cu124" },
+    { index = "pytorch-cu124", marker = "sys_platform == 'linux' and platform_machine == 'x86_64'" },
 ]
 torchvision = [
-    { index = "pytorch-cu124" },
+    { index = "pytorch-cu124", marker = "sys_platform == 'linux' and platform_machine == 'x86_64'" },
+]
+
+[tool.uv]
+# Ensure uv resolves dependencies for both macOS arm64 (CPU) and Linux x86_64 (CUDA)
+required-environments = [
+    "sys_platform == 'darwin' and platform_machine == 'arm64'",
+    "sys_platform == 'linux' and platform_machine == 'x86_64'",
 ]
 
 [[tool.uv.index]]
