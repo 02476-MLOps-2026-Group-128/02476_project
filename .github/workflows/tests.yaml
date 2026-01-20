@@ -53,14 +53,10 @@ jobs:
         uses: google-github-actions/setup-gcloud@v2
 
       - name: Download inference models from GCS
-        run: |
-          mkdir -p ./models/api_models
-          gcloud storage cp -r gs://$BUCKET_NAME/models/ ./models/api_models
+        run: gcloud storage cp -r gs://$BUCKET_NAME/models/ .
 
       - name: Download inference config from GCS
-        run: |
-          mkdir -p ./configs
-          gcloud storage cp -r gs://$BUCKET_NAME/configs/ ./configs
+        run: gcloud storage cp -r gs://$BUCKET_NAME/configs/ .
 
       - name: Setup uv
         uses: astral-sh/setup-uv@v7
