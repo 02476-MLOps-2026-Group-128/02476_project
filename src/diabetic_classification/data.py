@@ -100,7 +100,13 @@ class DiabetesHealthDataset(LightningDataModule):
     """
 
     KAGGLE_DS_NAME: str = "mohankrishnathalla/diabetes-health-indicators-dataset"
-    POSSIBLE_TARGET_ATTRIBUTES: list[str] = ["diabetes_risk_score", "diagnosed_diabetes", "diabetes_stage"]
+    POSSIBLE_TARGET_ATTRIBUTES: list[str] = [
+        "diabetes_risk_score",
+        "diagnosed_diabetes",
+        "diabetes_stage",
+        "glucose_fasting",
+        "hba1c",
+    ]
     CATEGORICAL_ATTRIBUTES: list[str] = [
         "gender",
         "ethnicity",
@@ -136,24 +142,31 @@ class DiabetesHealthDataset(LightningDataModule):
         "hba1c",
         "diabetes_risk_score",
         "diagnosed_diabetes",
+        "gender_female",
         "gender_male",
         "gender_other",
+        "ethnicity_asian",
         "ethnicity_black",
         "ethnicity_hispanic",
         "ethnicity_other",
         "ethnicity_white",
+        "education_level_graduate",
         "education_level_highschool",
         "education_level_no_formal",
         "education_level_postgraduate",
+        "income_level_high",
         "income_level_low",
         "income_level_lower-middle",
         "income_level_middle",
         "income_level_upper-middle",
+        "employment_status_employed",
         "employment_status_retired",
         "employment_status_student",
         "employment_status_unemployed",
+        "smoking_status_current",
         "smoking_status_former",
         "smoking_status_never",
+        "diabetes_stage_gestational",
         "diabetes_stage_no_diabetes",
         "diabetes_stage_pre-diabetes",
         "diabetes_stage_type_1",
@@ -354,7 +367,7 @@ class DiabetesHealthDataset(LightningDataModule):
         categorical_columns = df.select_dtypes(include=["object", "category"]).columns.tolist()
 
         # One-hot encode categorical columns
-        df_encoded = pd.get_dummies(df, columns=categorical_columns, drop_first=True)
+        df_encoded = pd.get_dummies(df, columns=categorical_columns)
 
         # Fix column names by removing spaces and special characters
         df_encoded.columns = df_encoded.columns.str.replace(" ", "_").str.lower()
@@ -426,6 +439,7 @@ class DiabetesHealthDataset(LightningDataModule):
             features = [column for column in available_columns if column not in target_columns]
             if not features:
                 raise ValueError("No feature columns remain after removing targets.")
+
             self.feature_columns = list(dict.fromkeys(features))
             return self.feature_columns
 
