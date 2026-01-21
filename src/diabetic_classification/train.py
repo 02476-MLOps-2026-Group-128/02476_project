@@ -44,7 +44,7 @@ def compute_pos_weight(labels: torch.Tensor) -> torch.Tensor:
 
 
 @hydra.main(version_base=None, config_path="../../configs/hydra", config_name="config")
-def run_training(cfg) -> None:
+def run_training(cfg) -> str:
     """Train the diabetes classifier with PyTorch Lightning, using the specified Hydra configuration."""
     pl.seed_everything(cfg.trainer.seed, workers=True)
 
@@ -107,7 +107,11 @@ def run_training(cfg) -> None:
     trainer.fit(model, datamodule=data)
     trainer.test(model, datamodule=data)
 
-    final_ckpt = trainer.checkpoint_callback.best_model_path
+    checkpoint_callback = trainer.checkpoint_callback
+    if isinstance(checkpoint_callback, ModelCheckpoint):
+        final_ckpt = checkpoint_callback.best_model_path
+    else:
+        raise ValueError("ModelCheckpoint callback was not found or initialized.")
     return final_ckpt
 
 

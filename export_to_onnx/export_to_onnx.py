@@ -1,6 +1,6 @@
 from collections import defaultdict
 from pathlib import Path
-from typing import Any
+from typing import Any, Callable
 
 import torch
 import typer
@@ -11,14 +11,26 @@ from omegaconf.base import ContainerMetadata, Metadata
 from omegaconf.listconfig import ListConfig
 
 from diabetic_classification.data import DiabetesHealthDataset
-from src.diabetic_classification.model import DiabetesClassifier
+from diabetic_classification.model import DiabetesClassifier
 
-allowed_types = [DictConfig, ContainerMetadata, Any, dict, defaultdict, AnyNode, Metadata, ListConfig, list, int]
+ALLOWED_TYPES: list[Callable[..., Any] | tuple[Callable[..., Any], str]] = [
+    DictConfig,
+    ContainerMetadata,
+    dict,
+    defaultdict,
+    AnyNode,
+    Metadata,
+    ListConfig,
+    list,
+    int,
+]
+
+PROCESSED_INPUT_FEATURES = 38
 
 
 def export_to_onnx(
     checkpoint_path: str,
-    output_path: str | None = None,
+    output: str | None = None,
 ) -> Path:
     """
     Export the DiabetesClassifier model to ONNX format.
@@ -26,7 +38,7 @@ def export_to_onnx(
     Arguments:
     ---------
         checkpoint_path (str): Path to the .ckpt file of the trained model.
-        output_path (str | None): Path to save the ONNX model.
+        output (str | None): Path to save the ONNX model.
             If None, saves alongside the checkpoint with .onnx extension.
 
     Returns:
@@ -38,29 +50,20 @@ def export_to_onnx(
         cfg = compose(config_name="config", return_hydra_config=True)
         HydraConfig.instance().set_config(cfg)
 
-    torch.serialization.add_safe_globals(allowed_types)
+    torch.serialization.add_safe_globals(ALLOWED_TYPES)
 
     model = DiabetesClassifier.load_from_checkpoint(checkpoint_path, weights_only=False)
     model.eval()
 
-    data = DiabetesHealthDataset(
-        data_dir=Path(cfg.data.data_dir),
-        batch_size=1,
-        feature_attributes=cfg.data.feature_attributes,
-        target_attributes=cfg.data.target_attributes,
-    )
-    data.setup("fit")
+    example_input = torch.randn(1, PROCESSED_INPUT_FEATURES)
 
-    example_input = data.train_dataset.features[:1]
-
-    if output_path is None:
-        output_path = Path(checkpoint_path).with_suffix(".onnx")
-    Path(output_path).parent.mkdir(parents=True, exist_ok=True)
+    output_file = Path(output) if output is not None else Path(checkpoint_path).with_suffix(".onnx")
+    Path(output_file).parent.mkdir(parents=True, exist_ok=True)
 
     torch.onnx.export(
         model.model,
-        example_input,
-        output_path,
+        (example_input,),
+        output_file,
         export_params=True,
         opset_version=14,
         do_constant_folding=True,
@@ -72,15 +75,15 @@ def export_to_onnx(
         },
     )
 
-    return output_path
+    return output_file
 
 
 def run_export(
     checkpoint_path: str = typer.Argument(help="Path to .ckpt file"),
-    output_path: str | None = typer.Argument(default=None, help="Path to save the ONNX model"),
+    output: str = typer.Argument(default=None, help="Path to save the ONNX model"),
 ) -> None:
     """Run the export_to_onnx function via Typer CLI."""
-    export_to_onnx(checkpoint_path, output_path)
+    export_to_onnx(checkpoint_path, output)
 
 
 if __name__ == "__main__":
