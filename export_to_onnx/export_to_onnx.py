@@ -4,13 +4,13 @@ from typing import Any
 
 import torch
 import typer
-from diabetic_classification.data import DiabetesHealthDataset
 from hydra import compose, initialize
 from hydra.core.hydra_config import HydraConfig
 from omegaconf import AnyNode, DictConfig
 from omegaconf.base import ContainerMetadata, Metadata
 from omegaconf.listconfig import ListConfig
 
+from diabetic_classification.data import DiabetesHealthDataset
 from src.diabetic_classification.model import DiabetesClassifier
 
 allowed_types = [DictConfig, ContainerMetadata, Any, dict, defaultdict, AnyNode, Metadata, ListConfig, list, int]
@@ -32,6 +32,7 @@ def export_to_onnx(
     Returns:
     -------
         Path: The path to the saved ONNX model.
+
     """
     with initialize(version_base=None, config_path="../configs/hydra"):
         cfg = compose(config_name="config", return_hydra_config=True)

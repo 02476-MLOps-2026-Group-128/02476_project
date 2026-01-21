@@ -1,10 +1,10 @@
 from pathlib import Path
 
-from diabetic_classification.train import run_training
 from hydra import compose, initialize
 from hydra.core.global_hydra import GlobalHydra
 from hydra.core.hydra_config import HydraConfig
 
+from diabetic_classification.train import run_training
 from export_to_onnx.export_to_onnx import export_to_onnx
 
 
