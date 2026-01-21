@@ -21,9 +21,9 @@ class TabularMLP(nn.Module):
     def __init__(
         self,
         input_dim: int,
-        hidden_dims: tuple[int, int],
-        dropout: float,
-        output_dim: int,
+        hidden_dims: tuple[int, ...] = (128, 64),
+        dropout: float = 0.2,
+        output_dim: int = 1,
     ) -> None:
         super().__init__()
         layers: list[nn.Module] = []
@@ -71,6 +71,7 @@ class DiabetesClassifier(LightningModule):
         optimizer_cfg,
         input_dim: int,
         output_dim: int = 1,
+        pos_weight: torch.Tensor | None = None,
     ) -> None:
         super().__init__()
         self.optimizer_cfg = optimizer_cfg
@@ -81,7 +82,15 @@ class DiabetesClassifier(LightningModule):
             dropout=cfg.dropout,
             output_dim=output_dim,
         )
-        self.loss_fn = nn.BCEWithLogitsLoss()
+        weight_tensor: torch.Tensor | None = None
+        if pos_weight is not None:
+            weight_tensor = torch.as_tensor(pos_weight, dtype=torch.float32)
+            if weight_tensor.ndim == 0:
+                weight_tensor = weight_tensor.unsqueeze(0)
+        self.register_buffer("pos_weight", weight_tensor)
+        self.loss_fn = nn.BCEWithLogitsLoss(
+            pos_weight=self.pos_weight  # type: ignore[arg-type]
+        )
 
     def forward(self, x: torch.Tensor) -> torch.Tensor:
         """
