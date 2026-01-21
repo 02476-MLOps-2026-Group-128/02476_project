@@ -1,6 +1,11 @@
 # Diabetes classification
 
 ## Development
+**Syncing dependencies from pyproject.toml:**
+```bash
+uv sync
+```
+
 **Installing pre-commit config:**
 ```bash
 uv run pre-commit install
@@ -135,3 +140,24 @@ checklist for the exam. The parenthesis at the end indicates what module the bul
 Run: uv run python -m diabetic_classification.train
 
 For the hyperparameter configuration we use Hydra config files, which can be found in the 'configs/hydra' directory. These parameters are added to the generated model folder, in a 'hydra' subfolder.
+
+## API
+We provide a FastAPI application for model inference. To run the API locally, run the following commands (in different terminals):
+
+```bash
+make run-api
+```
+```bash
+uv run streamlit run frontend.py
+```
+
+The API expects the models to be stored in the `models/api_models/` directory, following a specific structure based on problem type, model type, feature set, and version. Each version folder should contain a `config.json` file specifying the model path and architecture details, along with the actual model file (e.g., `model.pt`).
+
+A model is already given in the repository for testing purposes. You can find it at:
+`models/api_models/diagnosed_diabetes/MLP/feature_set1/v1/`
+
+To convert a Lightning checkpoint (`.ckpt`) to the required PyTorch state dictionary format (`.pt`), you can use the provided utility script:
+```bash
+uv run tools/ckpt_to_pt.py path/to/your/model.ckpt models/api_models/diagnosed_diabetes/MLP/feature_set1/v1/ --output-name model.pt
+```
+Make sure to create the corresponding `config.json` in the same directory to match your model's architecture.

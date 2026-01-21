@@ -190,4 +190,7 @@ lightning_logs/
 *.pth
 
 # Models
-models/
+models/*
+# Include api-ready models
+!models/api_models/
+!models/api_models/**/*.pt
