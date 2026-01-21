@@ -148,11 +148,6 @@ def train(cfg) -> None:
     )
     trainer.fit(model, datamodule=data)
     test_results = trainer.test(model, datamodule=data)
-
-    logging.info("Config:")
-    for key, value in cfg.items():
-        logging.info("  %s: %s", key, value)
-
     logging.info("Test results:")
     for metric, value in test_results[0].items():
         logging.info("  %s: %.6f", metric, value)
