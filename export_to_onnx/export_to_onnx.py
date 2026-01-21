@@ -52,16 +52,24 @@ def export_to_onnx(
 
     torch.serialization.add_safe_globals(ALLOWED_TYPES)
 
-    model = DiabetesClassifier.load_from_checkpoint(checkpoint_path, weights_only=False)
-    model.eval()
+    lightning_model = DiabetesClassifier.load_from_checkpoint(checkpoint_path, weights_only=False)
+    lightning_model.eval()
 
-    example_input = torch.randn(1, PROCESSED_INPUT_FEATURES)
+    # Determine the device (checks for mps, then cuda, then cpu)
+    # to cover for the case in which the model is ran on MacOs
+    device = torch.device(
+        "mps" if torch.backends.mps.is_available() else "cuda" if torch.cuda.is_available() else "cpu"
+    )
+
+    lightning_model.model.to(device)
+
+    example_input = torch.randn(1, PROCESSED_INPUT_FEATURES).to(device)
 
     output_file = Path(output) if output is not None else Path(checkpoint_path).with_suffix(".onnx")
     Path(output_file).parent.mkdir(parents=True, exist_ok=True)
 
     torch.onnx.export(
-        model.model,
+        lightning_model.model,
         (example_input,),
         output_file,
         export_params=True,
