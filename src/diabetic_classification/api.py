@@ -6,13 +6,23 @@ import shutil
 import tempfile
 import time
 from contextlib import asynccontextmanager
+from datetime import datetime
 from enum import Enum
 from http import HTTPStatus
 from pathlib import Path
 from typing import Any
 
+import anyio
+import pandas as pd
 import torch
-from fastapi import Depends, FastAPI, HTTPException
+from evidently.legacy.metric_preset import (
+    DataDriftPreset,
+    DataQualityPreset,
+    TargetDriftPreset,
+)
+from evidently.legacy.report import Report
+from fastapi import BackgroundTasks, Depends, FastAPI, HTTPException
+from fastapi.responses import HTMLResponse
 from google.cloud import storage
 from loguru import logger
 from pydantic_settings import BaseSettings, SettingsConfigDict
@@ -271,12 +281,13 @@ async def list_models(registry: ModelRegistry = Depends(get_model_registry)) -> 
 
 @app.post("/predict/{problem_type}/{model_type}/{feature_set}/")
 async def predict(
-    problem_type: ProblemType,
-    model_type: ModelType,
-    feature_set: FeatureSet,
-    features: dict[str, float],
-    registry: ModelRegistry = Depends(get_model_registry),
-    device: torch.device = Depends(get_device),
+        problem_type: ProblemType,
+        model_type: ModelType,
+        feature_set: FeatureSet,
+        features: dict[str, dict[str, float]],  # Expecting {"raw": {...}, "payload": {...}}
+        background_tasks: BackgroundTasks,
+        registry: ModelRegistry = Depends(get_model_registry),
+        device: torch.device = Depends(get_device),
 ) -> dict[str, Any]:
     """Make a prediction using the specified model."""
     if problem_type.value not in registry:
@@ -310,6 +321,8 @@ async def predict(
     expected_features = model_info["features"]
 
     # Check if all expected features are present
+    raw_features = features.get("raw", {})
+    features = features.get("payload", {})
     missing_features = set(expected_features) - set(features.keys())
     if missing_features:
         logger.warning(
@@ -368,7 +381,41 @@ async def predict(
         f"for {problem_type.value}/{model_type.value}/{feature_set.value}"
     )
 
+    now = str(datetime.utcnow())
+    background_tasks.add_task(add_to_database, now, list(raw_features.values()), prediction)
+
     return {
         "prediction": prediction,
         "probabilities": probs,
     }
+
+
+@app.get("/monitoring", response_class=HTMLResponse)
+async def monitoring():
+    """Simple get request method that returns a monitoring report."""
+    reference_data = pd.read_csv("data/processed/train_data.csv")
+    reference_data = reference_data.rename(columns={"diagnosed_diabetes": "prediction"})
+
+    current_data = pd.read_csv("data/data_drift/input_database.csv")
+    current_data = current_data.drop(columns=["timestamp"])
+
+    reference_data = reference_data[current_data.columns]
+
+    data_drift_report = Report(metrics=[DataDriftPreset(), DataQualityPreset(), TargetDriftPreset()])
+    data_drift_report.run(current_data=current_data, reference_data=reference_data)
+    data_drift_report.save_html("monitoring.html")
+
+    async with await anyio.open_file("monitoring.html", encoding="utf-8") as f:
+        html_content = await f.read()
+
+    return HTMLResponse(content=html_content, status_code=200)
+
+
+def add_to_database(
+        now: str,
+        features: list[float],
+        prediction: int,
+) -> None:
+    """Simple function to add prediction to database."""
+    with open("data/data_drift/input_database.csv", "a") as file:
+        file.write(f"{now}, {','.join(map(str, features))}, {prediction}\n")
