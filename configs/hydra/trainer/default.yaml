@@ -18,6 +18,10 @@ seed: 42 # int
 
 deterministic: true # bool
 
+enable_checkpointing: true # bool
+
+logger: true # bool
+
 log_every_n_steps: 50 # int
 
 accelerator: auto # str

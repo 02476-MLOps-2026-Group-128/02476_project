@@ -136,6 +136,37 @@ Run: uv run python -m diabetic_classification.train
 
 The training script uses Hydra for hyperparameter configuration management. The configuration files are located at `configs/hydra`. The parameters used are logged together with the model, in a 'hydra' subfolder.
 
+### Hyperparameter sweep
+It is possible to overwrite the hydra configuration parameters from the command line, using the `-m` (`--multirun`) flag. Hydra will then run the training script multiple times, once for each combination of the specified parameters.
+
+The multirun flag can generate a lot of training runs, therefore we use it with the parameters `trainer.enable_checkpointing=false trainer.logger=false`, such that no checkpoints and ligtning logs are saved, keeping only the Hydra logs in `/multirun/` folder (test accuracy and loss are logged to the `train.log` file).
+
+There are a log of hyperparameters that could be tuned, such as:
+- learning-rate
+- batch-size
+- optimizer
+- dropout rate
+- epochs
+- hidden dimensions
+
+Trying a sweep over all these parameters would quickly generate a lot of training runs. Therefore, we have opted for the following sweep:
+
+```bash
+uv run src/diabetic_classification/train.py -m trainer.enable_checkpointing=false trainer.logger=false \
+optimizer.lr=0.001,0.0001 \
+trainer.max_epochs=10,20 \
+model.hidden_dims="[128,64]","[256,128]" \
+model.dropout=0.1,0.3
+```
+
+This command generates 16 training runs. The results of the sweep did not indicate a significant difference in performance between the different hyperparameter combinations, with the best combination achieving a test accuracy of 81.935% (all accuracies were between in between 81% and 82%). The best combination seemed to be:
+- learning-rate: 0.001
+- epochs: 10
+- hidden dimensions: [256,128]
+- dropout: 0.1
+
+These parameters are set as default in `configs/hydra/
+
 ### Remotely building the docker image
 It is possible to build the training docker image remotely in GCP using Cloud Build. This is done automatically when new code is pushed to the main branch (`.github/workflows/tests.yaml`), but it can also be triggered manually by running the following command:
 
