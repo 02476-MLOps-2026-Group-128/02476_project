@@ -20,7 +20,19 @@ def export_to_onnx(
     checkpoint_path: str,
     output_path: str | None = None,
 ) -> Path:
-    """Export the DiabetesClassifier model to ONNX format."""
+    """
+    Export the DiabetesClassifier model to ONNX format.
+
+    Arguments:
+    ---------
+        checkpoint_path (str): Path to the .ckpt file of the trained model.
+        output_path (str | None): Path to save the ONNX model.
+            If None, saves alongside the checkpoint with .onnx extension.
+
+    Returns:
+    -------
+        Path: The path to the saved ONNX model.
+    """
     with initialize(version_base=None, config_path="../configs/hydra"):
         cfg = compose(config_name="config", return_hydra_config=True)
         HydraConfig.instance().set_config(cfg)

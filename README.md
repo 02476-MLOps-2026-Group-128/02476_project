@@ -135,3 +135,12 @@ checklist for the exam. The parenthesis at the end indicates what module the bul
 Run: uv run python -m diabetic_classification.train
 
 For the hyperparameter configuration we use Hydra config files, which can be found in the 'configs/hydra' directory. These parameters are added to the generated model folder, in a 'hydra' subfolder.
+
+## Exporting model to onnx format
+Run:
+
+```
+uv run -m export_to_onnx.export_to_onnx path/to/model/checkpoint.ckpt
+```
+
+Export a saved checkpoint of a model to onnx format. Takes 2 arguments: the path to the checkpoint file (required) and the desired output path (optional). If not given, the output file will be in the same folder as the input `.ckpt` and have the same name, only with the `.onnx` extension.
