@@ -2,7 +2,7 @@
 batch_size: 256 # int
 
 # Maximum number of training epochs.
-max_epochs: 5 # int
+max_epochs: 10 # int
 
 # DataLoader worker count.
 num_workers: 5 # int
