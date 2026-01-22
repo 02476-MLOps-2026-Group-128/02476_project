@@ -6,6 +6,7 @@ import shutil
 import tempfile
 import time
 from contextlib import asynccontextmanager
+from datetime import datetime
 from enum import Enum
 from http import HTTPStatus
 from pathlib import Path
@@ -16,7 +17,7 @@ import torch
 from fastapi import Depends, FastAPI, HTTPException
 from google.cloud import storage
 from loguru import logger
-from prometheus_client import Counter, Gauge, Histogram, make_asgi_app
+from prometheus_client import Counter, Histogram, make_asgi_app
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 from diabetic_classification.model import TabularMLP
@@ -103,6 +104,7 @@ async def lifespan(app: FastAPI):
 
     tmp_dir = tempfile.mkdtemp()
     base_path = Path(tmp_dir)
+    storage_client = storage.Client()
     if gcs_uri:
         logger.info(f"Running in cloud. Downloading artifacts from: {gcs_uri}")
 
@@ -111,9 +113,8 @@ async def lifespan(app: FastAPI):
         models_bucket_name = gcs_uri.replace("gs://", "").split("/")[0]
         prefix = "/".join(gcs_uri.replace("gs://", "").split("/")[1:])
 
-        model_storage_client = storage.Client()
-        model_bucket = model_storage_client.bucket(models_bucket_name)
-        blobs = model_bucket.list_blobs(prefix=prefix)
+        bucket = storage_client.bucket(models_bucket_name)
+        blobs = bucket.list_blobs(prefix=prefix)
 
         for blob in blobs:
             # Create local subdirectories if they exist in GCS
@@ -242,32 +243,8 @@ async def lifespan(app: FastAPI):
     MODEL_LOADING_TIME.observe(model_load_time)
     logger.info(f"Model registry initialized (loading time: {model_load_time:.2f}s)")
 
-    data_storage_uri = os.environ.get("DATA_STORAGE_URI")
-    if data_storage_uri:
-        logger.info(f"Data storage URI found: {data_storage_uri}")
+    db_dir = base_path / "enriched" / "new_rows"
 
-        data_bucket_name = data_storage_uri.replace("gs://", "").split("/")[0]
-        data_prefix = "/".join(data_storage_uri.replace("gs://", "").split("/")[1:])
-
-        data_storage_client = storage.Client()
-        logger.debug(f"Bucket name: {data_bucket_name}, Prefix: {data_prefix}")
-        data_bucket = data_storage_client.bucket(data_bucket_name)
-        blobs = data_bucket.list_blobs(prefix=data_prefix)
-
-        for blob in blobs:
-            # Create local subdirectories if they exist in GCS
-            relative_path = os.path.relpath(blob.name, data_prefix)
-            local_file_path = base_path / relative_path
-            local_file_path.parent.mkdir(parents=True, exist_ok=True)
-
-            if not blob.name.endswith("/"):  # Skip directory markers
-                blob.download_to_filename(str(local_file_path))
-                logger.debug(f"Downloaded: {blob.name} -> {local_file_path}")
-
-        # Update paths to point to the temporary local directory
-        db_dir = base_path / "enriched"
-    else:
-        logger.warning("Data storage URI not found. Data will not be enriched from new user entries.")
     yield
 
     logger.info("Cleaning up")
@@ -447,7 +424,7 @@ async def predict(
         f"Prediction: {prediction}, prob_diabetes={prob_class_1:.3f} "
         f"for {problem_type.value}/{model_type.value}/{feature_set.value}"
     )
-    enrich_dataset(features, prediction, probs)
+    upload_new_row(db_dir, features, prediction, probs)
 
     PREDICTION_LATENCY.labels(
         model_type=model_type.value,
@@ -466,109 +443,32 @@ async def predict(
     }
 
 
-def enrich_dataset(features: dict[str, float], prediction: int, probabilities: dict[str, float]) -> None:
-    """Enrich the dataset with prediction results (stub function)."""
+def upload_new_row(db_dir: str, features: dict[str, float], prediction: int, probabilities: dict[str, float]) -> None:
+    """Register the user input as a JSON file in the data bucket."""
     logger.debug(
         f"Enriching dataset with features: {features}, prediction: {prediction}, probabilities: {probabilities}"
     )
 
-    new_row = map_model_to_dataset(
-        model_input=features,
-        prediction=prediction,
-        probabilities=probabilities,
-    )
+    timestamp = datetime.now().strftime(r"%Y-%m-%d--%H-%M-%S-%f")
 
-    dataset_path = db_dir / "diabetes_dataset.csv"
-    enriched_dataset = pd.read_csv(dataset_path)
-    logger.debug(f"Current dataset size: {len(enriched_dataset)}.")
-    enriched_dataset = pd.concat([enriched_dataset, pd.DataFrame([new_row])], ignore_index=True)
-    enriched_dataset.to_csv(dataset_path, index=False)
-    logger.info(f"New dataset size: {len(enriched_dataset)}.")
+    features["prediction"] = prediction
+    features["probabilities"] = probabilities
+
+    new_row_path = Path(db_dir) / f"{timestamp}.json"
+    new_row_path.parent.mkdir(parents=True, exist_ok=True)
+    bucket_path = f"enriched/new_rows/{new_row_path.name}"
+    with open(new_row_path, "a") as json_file:
+        json.dump(features, json_file)
+
     storage_client = storage.Client()
     bucket_name = os.environ.get("DATA_STORAGE_BUCKET_NAME")
     if bucket_name:
         bucket = storage_client.bucket(bucket_name)
-        blob = bucket.blob("enriched/diabetes_dataset.csv")
+        blob = bucket.blob(bucket_path)
         try:
-            blob.upload_from_filename(str(dataset_path))
-            logger.info(f"Enriched dataset uploaded to gs://{bucket_name}/enriched/diabetes_dataset.csv")
+            blob.upload_from_filename(str(new_row_path))
+            logger.info(f"New row uploaded to gs://{bucket_name}/{bucket_path}")
         except Exception as e:
-            logger.warning(f"Failed to enrich the dataset with the user's input: {e}")
+            logger.warning(f"Failed to upload a new row with the user's input: {e}")
     else:
-        logger.warning("Env var DATA_STORAGE_BUCKET_NAME not set. Skipping upload of enriched dataset.")
-
-
-def map_model_to_dataset(model_input: dict[str, float], prediction: int, probabilities: dict[str, float]) -> dict:
-    """
-    Transform a model inference dictionary (One-Hot Encoded).
-
-    Back to the original dataset schema.
-    """
-    # Define the groups of one-hot encoded columns
-    one_hot_groups = {
-        "gender": ["gender_female", "gender_male", "gender_other"],
-        "ethnicity": ["ethnicity_asian", "ethnicity_black", "ethnicity_hispanic", "ethnicity_other", "ethnicity_white"],
-        "education_level": [
-            "education_level_graduate",
-            "education_level_highschool",
-            "education_level_no_formal",
-            "education_level_postgraduate",
-        ],
-        "income_level": [
-            "income_level_high",
-            "income_level_low",
-            "income_level_lower-middle",
-            "income_level_middle",
-            "income_level_upper-middle",
-        ],
-        "employment_status": [
-            "employment_status_employed",
-            "employment_status_retired",
-            "employment_status_student",
-            "employment_status_unemployed",
-        ],
-        "smoking_status": ["smoking_status_current", "smoking_status_former", "smoking_status_never"],
-    }
-
-    # Start with direct numerical/boolean mappings
-    result = {
-        "age": model_input.get("age"),
-        "alcohol_consumption_per_week": model_input.get("alcohol_consumption_per_week"),
-        "physical_activity_minutes_per_week": model_input.get("physical_activity_minutes_per_week"),
-        "sleep_hours_per_day": model_input.get("sleep_hours_per_day"),
-        "screen_time_hours_per_day": model_input.get("screen_time_hours_per_day"),
-        "family_history_diabetes": model_input.get("family_history_diabetes"),
-        "bmi": model_input.get("bmi"),
-        "systolic_bp": model_input.get("systolic_bp"),
-        "diastolic_bp": model_input.get("diastolic_bp"),
-        "heart_rate": model_input.get("heart_rate"),
-        "insulin_level": model_input.get("insulin_level"),
-        # Fields not present in model JSON default to None
-        "diet_score": None,
-        "hypertension_history": None,
-        "cardiovascular_history": None,
-        "waist_to_hip_ratio": None,
-        "cholesterol_total": None,
-        "hdl_cholesterol": None,
-        "ldl_cholesterol": None,
-        "triglycerides": None,
-        "glucose_fasting": None,
-        "glucose_postprandial": None,
-        "hba1c": None,
-        "diabetes_risk_score": probabilities.get("Diabetes"),
-        "diabetes_stage": None,
-        "diagnosed_diabetes": prediction,
-    }
-
-    # Process One-Hot groups to retrieve the original categorical string
-    for original_key, sub_features in one_hot_groups.items():
-        # Find which column has the value 1 (or 1.0/True)
-        active_feature = next((f for f in sub_features if model_input.get(f) == 1), None)
-
-        if active_feature:
-            # Strip the prefix (e.g., "gender_" -> "male")
-            result[original_key] = active_feature.replace(f"{original_key}_", "")
-        else:
-            result[original_key] = None
-
-    return result
+        logger.warning("Env var DATA_STORAGE_BUCKET_NAME not set. Skipping upload of new row.")
