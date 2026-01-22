@@ -3,9 +3,5 @@ outs:
   path: enriched
   files:
   - relpath: diabetes_dataset.csv
-    md5: 48f083872bb84fb4eaa634594ee8333c
-    size: 17265910
-    cloud:
-      remote_storage:
-        etag: 088da39dfeb69f92031001
-        version_id: '1769094609588621'
+    md5: 80e1f83ee5488b5bd10b32e854e68f84
+    size: 17266497
