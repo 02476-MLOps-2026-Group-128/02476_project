@@ -93,7 +93,7 @@ MODEL_LOADING_TIME = Histogram(
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     """Load and clean up model on startup and shutdown."""
-    global model_registry, device, feature_sets
+    global model_registry, device, feature_sets, db_dir
 
     # 1. Determine the Base Path for Artifacts
     artifacts_gcs_uri = os.environ.get("ARTIFACTS_GCS_URI")
@@ -250,6 +250,7 @@ async def lifespan(app: FastAPI):
         data_prefix = "/".join(data_storage_uri.replace("gs://", "").split("/")[1:])
 
         data_storage_client = storage.Client()
+        logger.debug(f"Bucket name: {data_bucket_name}, Prefix: {data_prefix}")
         data_bucket = data_storage_client.bucket(data_bucket_name)
         blobs = data_bucket.list_blobs(prefix=data_prefix)
 
@@ -264,7 +265,7 @@ async def lifespan(app: FastAPI):
                 logger.debug(f"Downloaded: {blob.name} -> {local_file_path}")
 
         # Update paths to point to the temporary local directory
-        db_dir = base_path / "enriched" / "api_models"
+        db_dir = base_path / "enriched"
     else:
         logger.warning("Data storage URI not found. Data will not be enriched from new user entries.")
     yield
@@ -477,15 +478,24 @@ def enrich_dataset(features: dict[str, float], prediction: int, probabilities: d
         probabilities=probabilities,
     )
 
-    enriched_dataset = pd.read_csv(
-        "/home/mathias/Documents/academic/dtu/ml_ops/02476_project/data/enriched/diabetes_dataset.csv"
-    )
+    dataset_path = db_dir / "diabetes_dataset.csv"
+    enriched_dataset = pd.read_csv(dataset_path)
+    logger.debug(f"Current dataset size: {len(enriched_dataset)}.")
     enriched_dataset = pd.concat([enriched_dataset, pd.DataFrame([new_row])], ignore_index=True)
-    enriched_dataset.to_csv(
-        "/home/mathias/Documents/academic/dtu/ml_ops/02476_project/data/enriched/diabetes_dataset.csv", index=False
-    )
+    enriched_dataset.to_csv(dataset_path, index=False)
     logger.info(f"New dataset size: {len(enriched_dataset)}.")
-    logger.info("Dataset enriched and saved to 'data/enriched/diabetes_dataset.csv'")
+    storage_client = storage.Client()
+    bucket_name = os.environ.get("DATA_STORAGE_BUCKET_NAME")
+    if bucket_name:
+        bucket = storage_client.bucket(bucket_name)
+        blob = bucket.blob("enriched/diabetes_dataset.csv")
+        try:
+            blob.upload_from_filename(str(dataset_path))
+            logger.info(f"Enriched dataset uploaded to gs://{bucket_name}/enriched/diabetes_dataset.csv")
+        except Exception as e:
+            logger.warning(f"Failed to enrich the dataset with the user's input: {e}")
+    else:
+        logger.warning("Env var DATA_STORAGE_BUCKET_NAME not set. Skipping upload of enriched dataset.")
 
 
 def map_model_to_dataset(model_input: dict[str, float], prediction: int, probabilities: dict[str, float]) -> dict:
