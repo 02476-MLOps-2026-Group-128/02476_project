@@ -1,0 +1,8 @@
+project_id = "diabetic-classification-484510"
+region = "europe-west4"
+service_name = "diabetic-fastapi"
+container_image = "europe-west4-docker.pkg.dev/diabetic-classification-484510/container-registry/fastapi"
+container_image_tag = "latest"
+service_account_name = "fastapi-sa"
+artifacts_gcs_uri = "gs://diabetic-classification-model-bucket/"
+log_level = "info"
