@@ -48,7 +48,7 @@ resource "google_cloud_run_service" "fastapi" {
     metadata {
       annotations = {
         "autoscaling.knative.dev/minScale" = "1"
-        "autoscaling.knative.dev/maxScale" = "5"
+        "autoscaling.knative.dev/maxScale" = "2"
         "run.googleapis.com/concurrency"   = "80"
         "run.googleapis.com/healthcheck-path" = "/"
       }
