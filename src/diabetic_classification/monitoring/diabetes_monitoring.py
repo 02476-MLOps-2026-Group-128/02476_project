@@ -77,7 +77,7 @@ def download_files(n: int = 5) -> None:
 
 
 @app.get("/report", response_class=HTMLResponse)
-async def get_report(n: int = 5):
+async def get_report(n: int = 5) -> HTMLResponse:
     """Generate and return the report."""
     prediction_data = load_latest_files(Path("."), n=n)
     run_analysis(training_data, prediction_data)
