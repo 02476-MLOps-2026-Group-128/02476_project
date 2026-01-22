@@ -61,18 +61,18 @@ checklist for the exam. The parenthesis at the end indicates what module the bul
 * [x] Create a trigger workflow for automatically building your docker images (M21)
 * [x] Get your model training in GCP using either the Engine or Vertex AI (M21)
 * [x] Create a FastAPI application that can do inference using your model (M22)
-* [P] Deploy your model in GCP using either Functions or Run as the backend (M23)
+* [x] Deploy your model in GCP using either Functions or Run as the backend (M23)
 * [x] Write API tests for your application and setup continues integration for these (M24)
-* [P] Load test your application (M24)
+* [x] Load test your application (M24)
 * [M] Create a more specialized ML-deployment API using either ONNX or BentoML, or both (M25)
 * [V] Create a frontend for your API (M26)
 
 ### Week 3
 
 * [B] Check how robust your model is towards data drifting (M27)
-* [P] Setup collection of input-output data from your deployed application (M27)
+* [M] Setup collection of input-output data from your deployed application (M27)
 * [B] Deploy to the cloud a drift detection API (M27)
-* [P] Instrument your API with a couple of system metrics (M28)
+* [x] Instrument your API with a couple of system metrics (M28)
 * [V] Setup cloud monitoring of your instrumented application (M28)
 * [M] Create one or more alert systems in GCP to alert you if your app is not behaving correctly (M28)
 * [-] If applicable, optimize the performance of your data loading using distributed data loading (M29)
