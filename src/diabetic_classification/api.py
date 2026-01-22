@@ -381,8 +381,13 @@ async def predict(
         f"for {problem_type.value}/{model_type.value}/{feature_set.value}"
     )
 
-    now = str(datetime.utcnow())
-    background_tasks.add_task(add_to_database, now, list(raw_features.values()), prediction)
+    aip_storage_uri = os.environ.get("AIP_STORAGE_URI")
+    if aip_storage_uri:
+        # Running in the cloud - save to GCP bucket
+        background_tasks.add_task(add_to_gcp, list(raw_features.values()), prediction)
+    else:
+        # Running locally - save to local database
+        background_tasks.add_task(add_to_database, list(raw_features.values()), prediction)
 
     return {
         "prediction": prediction,
@@ -411,11 +416,32 @@ async def monitoring():
     return HTMLResponse(content=html_content, status_code=200)
 
 
+BUCKET_NAME = "diabetes-monitoring"
+
+def add_to_gcp(
+        features: list[float],
+        prediction: int,
+) -> None:
+    """Simple function to add prediction to GCP bucker."""
+    client = storage.Client()
+    bucket = client.bucket(BUCKET_NAME)
+    time = str(datetime.utcnow())
+
+    # Prepare prediction data
+    data = {
+        "input": features,
+        "prediction": prediction,
+        "timestamp": datetime.utcnow().isoformat(),
+    }
+    blob = bucket.blob(f"prediction_{time}.json")
+    blob.upload_from_string(json.dumps(data))
+    print("Prediction saved to GCP bucket.")
+
 def add_to_database(
-        now: str,
         features: list[float],
         prediction: int,
 ) -> None:
     """Simple function to add prediction to database."""
     with open("data/data_drift/input_database.csv", "a") as file:
+        now = datetime.utcnow().isoformat()
         file.write(f"{now}, {','.join(map(str, features))}, {prediction}\n")
