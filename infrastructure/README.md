@@ -17,6 +17,7 @@ The Terraform configuration provisions:
 - Artifact Registry and Cloud Run APIs enabled
 - Docker installed (for local builds)
 
+
 ## Setup & Usage
 
 1. **Configure variables:**
@@ -28,21 +29,41 @@ The Terraform configuration provisions:
    terraform init
    ```
 
-3. **Plan and apply deployment:**
+
+3. **Import existing resources (if needed):**
+    - If you are joining the project or working from a new machine, you may need to import existing cloud resources into your local Terraform state to avoid resource duplication or accidental deletion.
+    - Run the following commands (replace variables in <> with your actual values if needed):
+       ```bash
+       terraform import google_storage_bucket.model_registry diabetic-classification-model-bucket
+       terraform import google_service_account.fastapi_sa projects/<PROJECT_ID>/serviceAccounts/<SERVICE_ACCOUNT_EMAIL>
+       terraform import google_cloud_run_service.fastapi projects/<PROJECT_ID>/locations/<REGION>/services/<SERVICE_NAME>
+       terraform import google_cloud_run_service_iam_member.public_invoker "projects/<PROJECT_ID>/locations/<REGION>/services/<SERVICE_NAME> roles/run.invoker allUsers"
+       ```
+    - You can find the service account email in the GCP console or by running:
+       ```bash
+       gcloud iam service-accounts list
+       ```
+    - Example values:
+       - `<PROJECT_ID>`: your GCP project ID
+       - `<REGION>`: e.g., europe-west4
+       - `<SERVICE_NAME>`: e.g., diabetic-fastapi
+       - `<SERVICE_ACCOUNT_EMAIL>`: e.g., fastapi-sa@your-project-id.iam.gserviceaccount.com
+
+4. **Plan and apply deployment:**
    ```bash
    terraform plan -var="container_image_tag=<your-tag>"
    terraform apply -var="container_image_tag=<your-tag>"
    ```
    - Use a unique image tag for each deployment to trigger a new Cloud Run revision.
 
-4. **Build and push Docker images:**
+5. **Build and push Docker images:**
    - Use Cloud Build or local Docker to build and push images to Artifact Registry.
    - Example (Cloud Build):
      ```bash
      gcloud builds submit --config ../cloudbuild.yaml .. --substitutions=SHORT_SHA=$(git rev-parse --short HEAD)
      ```
 
-5. **Access the API:**
+6. **Access the API:**
    - After deployment, find the Cloud Run service URL in Terraform outputs or GCP Console.
 
 ## Key Files
@@ -60,8 +81,8 @@ The Terraform configuration provisions:
     ```
 - `../dockerfiles/fastapi.dockerfile`: FastAPI Docker build
 
+
 ## Notes
 - All infrastructure changes should be managed via Terraform for reproducibility.
-- Existing GCS buckets can be imported into Terraform state using `terraform import`.
 - Environment variables (e.g., `ARTIFACTS_GCS_URI`) are set in Cloud Run via Terraform.
 - For troubleshooting, check Cloud Run logs and Terraform output.
