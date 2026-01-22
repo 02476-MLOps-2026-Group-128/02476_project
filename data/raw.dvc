@@ -1,6 +1,11 @@
 outs:
-- md5: 850ebc9cdf514db61489add4278eb387.dir
-  size: 14365521
-  nfiles: 1
-  hash: md5
+- hash: md5
   path: raw
+  files:
+  - relpath: diabetes_dataset.csv
+    md5: a190ccd0e6c59538f85ad6d76a5509b5
+    size: 14365521
+    cloud:
+      remote_storage:
+        etag: 08b895e4c6c69e92031001
+        version_id: '1769064428538552'
