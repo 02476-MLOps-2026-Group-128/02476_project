@@ -7,7 +7,7 @@ steps:
       - build
       - --build-arg
       - BUILDKIT_INLINE_CACHE=1
-      - --cache-from=registry=europe-west4-docker.pkg.dev/diabetic-classification-484510/container-registry/train:latest
+      - --cache-from=europe-west4-docker.pkg.dev/diabetic-classification-484510/container-registry/train:latest
       - -f
       - dockerfiles/train.dockerfile
       - -t
@@ -30,7 +30,7 @@ steps:
       - build
       - --build-arg
       - BUILDKIT_INLINE_CACHE=1
-      - --cache-from=registry=europe-west4-docker.pkg.dev/diabetic-classification-484510/container-registry/fastapi:latest
+      - --cache-from=europe-west4-docker.pkg.dev/diabetic-classification-484510/container-registry/fastapi:latest
       - -f
       - dockerfiles/fastapi.dockerfile
       - -t
