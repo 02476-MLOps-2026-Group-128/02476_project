@@ -44,6 +44,7 @@ ModelRegistry = dict[str, dict[str, dict[str, dict[str, Any]]]]
 # Global variables initialized in lifespan
 device: torch.device
 model_registry: ModelRegistry
+feature_sets: dict[str, list[str]]
 
 
 class ProblemType(str, Enum):
@@ -73,22 +74,23 @@ class TaskType(str, Enum):
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     """Load and clean up model on startup and shutdown."""
-    global model_registry, device
+    global model_registry, device, feature_sets
 
     # 1. Determine the Base Path for Artifacts
+    artifacts_gcs_uri = os.environ.get("ARTIFACTS_GCS_URI")
     aip_storage_uri = os.environ.get("AIP_STORAGE_URI")
+    gcs_uri = artifacts_gcs_uri or aip_storage_uri
     tmp_dir = None
 
-    if aip_storage_uri:
-        logger.info(f"Running in Vertex AI. Downloading weights from: {aip_storage_uri}")
-        # Create a temporary directory to store downloaded artifacts
+    if gcs_uri:
+        logger.info(f"Running in cloud. Downloading artifacts from: {gcs_uri}")
         tmp_dir = tempfile.mkdtemp()
         base_path = Path(tmp_dir)
 
         # Download everything from the GCS bucket path to our temp folder
-        # Expected URI format: gs://bucket-name/path/to/model/v1/
-        bucket_name = aip_storage_uri.replace("gs://", "").split("/")[0]
-        prefix = "/".join(aip_storage_uri.replace("gs://", "").split("/")[1:])
+        # Expected URI format: gs://bucket-name/path/to/artifacts/
+        bucket_name = gcs_uri.replace("gs://", "").split("/")[0]
+        prefix = "/".join(gcs_uri.replace("gs://", "").split("/")[1:])
 
         storage_client = storage.Client()
         bucket = storage_client.bucket(bucket_name)
@@ -106,7 +108,7 @@ async def lifespan(app: FastAPI):
 
         # Update paths to point to the temporary local directory
         models_dir = base_path / "models" / "api_models"
-        feature_sets_dir = base_path / "feature_sets"
+        feature_sets_dir = base_path / "configs" / "feature_sets"
     else:
         logger.info("Running locally. Using local configuration paths.")
         base_path = Path(".")  # Current directory
@@ -114,13 +116,23 @@ async def lifespan(app: FastAPI):
         feature_sets_dir = base_path / settings.feature_sets_dir
 
     # 2. Load Feature Sets (Using dynamic paths)
-    feature_sets: dict[str, list[str]] = {}
+    feature_sets = {}
+    logger.info(f"Looking for feature sets in: {feature_sets_dir}")
     if feature_sets_dir.exists():
-        for fs_file in os.listdir(feature_sets_dir):
-            if fs_file.endswith(".json"):
-                fs_name = fs_file[:-5]
-                with open(feature_sets_dir / fs_file, "r") as f:
-                    feature_sets[fs_name] = json.load(f)
+        files = os.listdir(feature_sets_dir)
+        logger.info(f"Feature sets directory contents: {files}")
+        for fs_file in files:
+            if not fs_file.endswith(".json"):
+                continue
+            fs_name = fs_file[:-5]
+            with open(feature_sets_dir / fs_file, "r") as f:
+                feature_sets[fs_name] = json.load(f)
+    else:
+        logger.warning(f"Feature sets directory does not exist: {feature_sets_dir}")
+
+    if not feature_sets:
+        logger.error(f"No feature sets found in {feature_sets_dir}. Check your GCS artifact path and contents.")
+        raise RuntimeError(f"No feature sets found in {feature_sets_dir}. Check your GCS artifact path and contents.")
 
     # 3. Discover and Load Models from Directory Structure
     logger.info("Discovering models from directory structure")
@@ -136,18 +148,21 @@ async def lifespan(app: FastAPI):
                 continue
 
             problem_type = problem_path.name
+            model_registry[problem_type] = {}
 
             for model_type_path in problem_path.iterdir():
                 if not model_type_path.is_dir():
                     continue
 
                 model_type = model_type_path.name
+                model_registry[problem_type][model_type] = {}
 
                 for feature_set_path in model_type_path.iterdir():
                     if not feature_set_path.is_dir():
                         continue
 
                     feature_set_name = feature_set_path.name
+                    model_registry[problem_type][model_type][feature_set_name] = {}
 
                     for version_path in feature_set_path.iterdir():
                         if not version_path.is_dir():
@@ -190,19 +205,12 @@ async def lifespan(app: FastAPI):
                                     "input_dim": config["input_dim"],
                                     "output_dim": config["output_dim"],
                                     "task_type": TaskType[config["task_type"].upper()],
-                                    "features": feature_sets.get(feature_set_name, []),
+                                    "feature_set": feature_set_name,
+                                    "prediction_endpoint": f"/predict/{problem_type}/{model_type}/{feature_set_name}/",
                                 }
                             else:
                                 logger.error(f"Unknown model type: {model_type}")
                                 raise ValueError(f"Model type '{model_type}' is not supported")
-
-                            # Ensure nested structure exists before adding
-                            if problem_type not in model_registry:
-                                model_registry[problem_type] = {}
-                            if model_type not in model_registry[problem_type]:
-                                model_registry[problem_type][model_type] = {}
-                            if feature_set_name not in model_registry[problem_type][model_type]:
-                                model_registry[problem_type][model_type][feature_set_name] = {}
 
                             model_registry[problem_type][model_type][feature_set_name][version] = model_info
 
@@ -233,6 +241,11 @@ def get_device() -> torch.device:
     return device
 
 
+def get_feature_sets() -> dict[str, list[str]]:
+    """Dependency to get the feature sets."""
+    return feature_sets
+
+
 @app.get("/")
 async def read_root(registry: ModelRegistry = Depends(get_model_registry)) -> dict[str, Any]:
     """Enhanced health check endpoint with API status information."""
@@ -248,6 +261,7 @@ async def read_root(registry: ModelRegistry = Depends(get_model_registry)) -> di
             "health": "/",
             "list_models": "/models/",
             "predict": "/predict/{problem_type}/{model_type}/{feature_set}/",
+            "list_feature_sets": "/feature-sets/",
         },
     }
 
@@ -269,6 +283,14 @@ async def list_models(registry: ModelRegistry = Depends(get_model_registry)) -> 
     return {"models": registry_overview}
 
 
+@app.get("/feature-sets/")
+async def list_feature_sets(
+    feature_sets: dict[str, list[str]] = Depends(get_feature_sets),
+) -> dict[str, Any]:
+    """List available feature sets for each problem and model type."""
+    return feature_sets
+
+
 @app.post("/predict/{problem_type}/{model_type}/{feature_set}/")
 async def predict(
     problem_type: ProblemType,
@@ -277,6 +299,7 @@ async def predict(
     features: dict[str, float],
     registry: ModelRegistry = Depends(get_model_registry),
     device: torch.device = Depends(get_device),
+    feature_sets: dict[str, list[str]] = Depends(get_feature_sets),
 ) -> dict[str, Any]:
     """Make a prediction using the specified model."""
     if problem_type.value not in registry:
@@ -307,7 +330,7 @@ async def predict(
     model = model_info["model"]
     input_dim = model_info["input_dim"]
     task_type = model_info["task_type"]
-    expected_features = model_info["features"]
+    expected_features = feature_sets[feature_set.value]
 
     # Check if all expected features are present
     missing_features = set(expected_features) - set(features.keys())
