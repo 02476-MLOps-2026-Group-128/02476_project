@@ -11,6 +11,7 @@ from http import HTTPStatus
 from pathlib import Path
 from typing import Any
 
+import pandas as pd
 import torch
 from fastapi import Depends, FastAPI, HTTPException
 from google.cloud import storage
@@ -28,7 +29,7 @@ class Settings(BaseSettings):
     api_models_dir: str = "models/api_models"
 
     model_config = SettingsConfigDict(
-        env_prefix="API_",
+        # env_prefix="API_",
         env_file=".env",
         env_file_encoding="utf-8",
     )
@@ -309,6 +310,13 @@ async def predict(
     task_type = model_info["task_type"]
     expected_features = model_info["features"]
 
+    # Temporary workaround to load expected features from file
+    with open("configs/feature_sets/feature_set1.json", "r") as f:
+        expected_features = json.load(f)
+    logger.debug(f"Using model version: {version} for {problem_type.value}/{model_type.value}/{feature_set.value}")
+    logger.debug(f"Feature set version: {feature_set_versions[version]}")
+    logger.debug(f"Model info{model_info}")
+
     # Check if all expected features are present
     missing_features = set(expected_features) - set(features.keys())
     if missing_features:
@@ -367,8 +375,107 @@ async def predict(
         f"Prediction: {prediction}, prob_diabetes={prob_class_1:.3f} "
         f"for {problem_type.value}/{model_type.value}/{feature_set.value}"
     )
-
+    enrich_dataset(features, prediction, probs)
     return {
         "prediction": prediction,
         "probabilities": probs,
     }
+
+
+def enrich_dataset(features: dict[str, float], prediction: int, probabilities: dict[str, float]) -> None:
+    """Enrich the dataset with prediction results (stub function)."""
+    logger.debug(
+        f"Enriching dataset with features: {features}, prediction: {prediction}, probabilities: {probabilities}"
+    )
+
+    new_row = map_model_to_dataset(
+        model_input=features,
+        prediction=prediction,
+        probabilities=probabilities,
+    )
+
+    enriched_dataset = pd.read_csv(
+        "/home/mathias/Documents/academic/dtu/ml_ops/02476_project/data/enriched/diabetes_dataset.csv"
+    )
+    enriched_dataset = pd.concat([enriched_dataset, pd.DataFrame([new_row])], ignore_index=True)
+    enriched_dataset.to_csv(
+        "/home/mathias/Documents/academic/dtu/ml_ops/02476_project/data/enriched/diabetes_dataset.csv", index=False
+    )
+    logger.info(f"New dataset size: {len(enriched_dataset)}.")
+    logger.info("Dataset enriched and saved to 'data/enriched/diabetes_dataset.csv'")
+
+
+def map_model_to_dataset(model_input: dict[str, float], prediction: int, probabilities: dict[str, float]) -> dict:
+    """
+    Transform a model inference dictionary (One-Hot Encoded).
+
+    Back to the original dataset schema.
+    """
+    # Define the groups of one-hot encoded columns
+    one_hot_groups = {
+        "gender": ["gender_female", "gender_male", "gender_other"],
+        "ethnicity": ["ethnicity_asian", "ethnicity_black", "ethnicity_hispanic", "ethnicity_other", "ethnicity_white"],
+        "education_level": [
+            "education_level_graduate",
+            "education_level_highschool",
+            "education_level_no_formal",
+            "education_level_postgraduate",
+        ],
+        "income_level": [
+            "income_level_high",
+            "income_level_low",
+            "income_level_lower-middle",
+            "income_level_middle",
+            "income_level_upper-middle",
+        ],
+        "employment_status": [
+            "employment_status_employed",
+            "employment_status_retired",
+            "employment_status_student",
+            "employment_status_unemployed",
+        ],
+        "smoking_status": ["smoking_status_current", "smoking_status_former", "smoking_status_never"],
+    }
+
+    # Start with direct numerical/boolean mappings
+    result = {
+        "age": model_input.get("age"),
+        "alcohol_consumption_per_week": model_input.get("alcohol_consumption_per_week"),
+        "physical_activity_minutes_per_week": model_input.get("physical_activity_minutes_per_week"),
+        "sleep_hours_per_day": model_input.get("sleep_hours_per_day"),
+        "screen_time_hours_per_day": model_input.get("screen_time_hours_per_day"),
+        "family_history_diabetes": model_input.get("family_history_diabetes"),
+        "bmi": model_input.get("bmi"),
+        "systolic_bp": model_input.get("systolic_bp"),
+        "diastolic_bp": model_input.get("diastolic_bp"),
+        "heart_rate": model_input.get("heart_rate"),
+        "insulin_level": model_input.get("insulin_level"),
+        # Fields not present in model JSON default to None
+        "diet_score": None,
+        "hypertension_history": None,
+        "cardiovascular_history": None,
+        "waist_to_hip_ratio": None,
+        "cholesterol_total": None,
+        "hdl_cholesterol": None,
+        "ldl_cholesterol": None,
+        "triglycerides": None,
+        "glucose_fasting": None,
+        "glucose_postprandial": None,
+        "hba1c": None,
+        "diabetes_risk_score": probabilities.get("Diabetes"),
+        "diabetes_stage": None,
+        "diagnosed_diabetes": prediction,
+    }
+
+    # Process One-Hot groups to retrieve the original categorical string
+    for original_key, sub_features in one_hot_groups.items():
+        # Find which column has the value 1 (or 1.0/True)
+        active_feature = next((f for f in sub_features if model_input.get(f) == 1), None)
+
+        if active_feature:
+            # Strip the prefix (e.g., "gender_" -> "male")
+            result[original_key] = active_feature.replace(f"{original_key}_", "")
+        else:
+            result[original_key] = None
+
+    return result

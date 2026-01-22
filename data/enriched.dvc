@@ -1,0 +1,6 @@
+outs:
+- md5: 2003a01c187117a076f10d71408d520d.dir
+  size: 17265910
+  nfiles: 1
+  hash: md5
+  path: enriched
