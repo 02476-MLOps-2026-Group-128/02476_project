@@ -15,6 +15,7 @@ import torch
 from fastapi import Depends, FastAPI, HTTPException
 from google.cloud import storage
 from loguru import logger
+from prometheus_client import Counter, Gauge, Histogram, make_asgi_app
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 from diabetic_classification.model import TabularMLP
@@ -69,6 +70,23 @@ class TaskType(str, Enum):
     """Enumeration of task types."""
 
     BINARY_CLASSIFICATION = "binary_classification"
+
+
+# Prometheus metrics
+PREDICTION_LATENCY = Histogram(
+    "api_prediction_latency_seconds",
+    "Latency of API predictions in seconds",
+    ["model_type", "feature_set", "problem_type"],
+)
+PREDICTION_REQUEST_COUNT = Counter(
+    "api_prediction_request_count",
+    "Total number of prediction requests",
+    ["model_type", "feature_set", "problem_type"],
+)
+MODEL_LOADING_TIME = Histogram(
+    "api_model_loading_time_seconds",
+    "Time taken to load all models during startup in seconds",
+)
 
 
 @asynccontextmanager
@@ -139,6 +157,7 @@ async def lifespan(app: FastAPI):
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
     logger.info(f"Using device: {device}")
 
+    start_model_load = time.perf_counter()
     model_registry = {}
 
     # Walk through the models directory: models/problem_type/model_type/feature_set/version/
@@ -218,7 +237,9 @@ async def lifespan(app: FastAPI):
                             logger.error(f"Failed to load model from {version_path}: {e}")
                             raise
 
-    logger.info("Model registry initialized")
+    model_load_time = time.perf_counter() - start_model_load
+    MODEL_LOADING_TIME.observe(model_load_time)
+    logger.info(f"Model registry initialized (loading time: {model_load_time:.2f}s)")
     yield
 
     logger.info("Cleaning up")
@@ -229,6 +250,7 @@ async def lifespan(app: FastAPI):
 
 
 app = FastAPI(lifespan=lifespan)
+app.mount("/metrics", make_asgi_app())
 
 
 def get_model_registry() -> ModelRegistry:
@@ -390,6 +412,17 @@ async def predict(
         f"Prediction: {prediction}, prob_diabetes={prob_class_1:.3f} "
         f"for {problem_type.value}/{model_type.value}/{feature_set.value}"
     )
+
+    PREDICTION_LATENCY.labels(
+        model_type=model_type.value,
+        feature_set=feature_set.value,
+        problem_type=problem_type.value,
+    ).observe(inference_time)
+    PREDICTION_REQUEST_COUNT.labels(
+        model_type=model_type.value,
+        feature_set=feature_set.value,
+        problem_type=problem_type.value,
+    ).inc()
 
     return {
         "prediction": prediction,
