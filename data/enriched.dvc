@@ -5,3 +5,7 @@ outs:
   - relpath: diabetes_dataset.csv
     md5: 80e1f83ee5488b5bd10b32e854e68f84
     size: 17266497
+    cloud:
+      remote_storage:
+        etag: 0897d9b4d195a092031001
+        version_id: '1769120016968855'
