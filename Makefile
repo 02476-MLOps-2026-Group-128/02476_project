@@ -9,3 +9,7 @@ train-in-docker:
 # Runs the API server
 run-api:
 	bash .devops/scripts/run_api.sh
+
+# Run cloudbuild
+cloudbuild:
+	bash .devops/scripts/run_cloudbuild.sh

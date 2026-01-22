@@ -191,3 +191,8 @@ lightning_logs/
 
 # Models
 models/
+
+# Terraform
+.terraform/
+*.tfstate
+*.tfstate.backup
