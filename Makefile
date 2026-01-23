@@ -10,6 +10,14 @@ train-in-docker:
 run-api:
 	bash .devops/scripts/run_api.sh
 
+# Run the frontend server
+run-frontend:
+	bash .devops/scripts/run_frontend.sh
+
 # Run cloudbuild
 cloudbuild:
 	bash .devops/scripts/run_cloudbuild.sh
+
+# Update the data
+update-data:
+	bash .devops/scripts/run_update_data.sh

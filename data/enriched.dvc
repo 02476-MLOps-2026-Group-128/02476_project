@@ -1,0 +1,11 @@
+outs:
+- hash: md5
+  path: enriched
+  files:
+  - relpath: diabetes_dataset.csv
+    md5: 18ce83f9fa0a79cf8ebceb477a236494
+    size: 17266833
+    cloud:
+      remote_storage:
+        etag: 08ef90e5f6c3a192031001
+        version_id: '1769166803126383'

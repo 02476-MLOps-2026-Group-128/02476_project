@@ -6,6 +6,7 @@ import shutil
 import tempfile
 import time
 from contextlib import asynccontextmanager
+from datetime import datetime
 from enum import Enum
 from http import HTTPStatus
 from pathlib import Path
@@ -24,7 +25,7 @@ from fastapi import Depends, FastAPI, HTTPException
 from fastapi.responses import HTMLResponse
 from google.cloud import storage
 from loguru import logger
-from prometheus_client import Counter, Gauge, Histogram, make_asgi_app
+from prometheus_client import Counter, Histogram, make_asgi_app
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 from diabetic_classification.model import TabularMLP
@@ -109,18 +110,18 @@ async def lifespan(app: FastAPI):
     gcs_uri = artifacts_gcs_uri or aip_storage_uri
     tmp_dir = None
 
+    tmp_dir = tempfile.mkdtemp()
+    base_path = Path(tmp_dir)
+    storage_client = storage.Client()
     if gcs_uri:
         logger.info(f"Running in cloud. Downloading artifacts from: {gcs_uri}")
-        tmp_dir = tempfile.mkdtemp()
-        base_path = Path(tmp_dir)
 
         # Download everything from the GCS bucket path to our temp folder
         # Expected URI format: gs://bucket-name/path/to/artifacts/
-        bucket_name = gcs_uri.replace("gs://", "").split("/")[0]
+        models_bucket_name = gcs_uri.replace("gs://", "").split("/")[0]
         prefix = "/".join(gcs_uri.replace("gs://", "").split("/")[1:])
 
-        storage_client = storage.Client()
-        bucket = storage_client.bucket(bucket_name)
+        bucket = storage_client.bucket(models_bucket_name)
         blobs = bucket.list_blobs(prefix=prefix)
 
         for blob in blobs:
@@ -249,6 +250,7 @@ async def lifespan(app: FastAPI):
     model_load_time = time.perf_counter() - start_model_load
     MODEL_LOADING_TIME.observe(model_load_time)
     logger.info(f"Model registry initialized (loading time: {model_load_time:.2f}s)")
+
     yield
 
     logger.info("Cleaning up")
@@ -363,6 +365,13 @@ async def predict(
     task_type = model_info["task_type"]
     expected_features = feature_sets[feature_set.value]
 
+    # Temporary workaround to load expected features from file
+    with open("configs/feature_sets/feature_set1.json", "r") as f:
+        expected_features = json.load(f)
+    logger.debug(f"Using model version: {version} for {problem_type.value}/{model_type.value}/{feature_set.value}")
+    logger.debug(f"Feature set version: {feature_set_versions[version]}")
+    logger.debug(f"Model info{model_info}")
+
     # Check if all expected features are present
     missing_features = set(expected_features) - set(features.keys())
     if missing_features:
@@ -421,6 +430,7 @@ async def predict(
         f"Prediction: {prediction}, prob_diabetes={prob_class_1:.3f} "
         f"for {problem_type.value}/{model_type.value}/{feature_set.value}"
     )
+    upload_new_row(features, prediction, probs)
 
     PREDICTION_LATENCY.labels(
         model_type=model_type.value,
@@ -487,3 +497,38 @@ def get_data_drift_data(n = None) -> tuple[pd.DataFrame, pd.DataFrame]:
         return train_data, input_data
 
     return train_data, input_data.tail(n)
+
+
+def upload_new_row(features: dict[str, float], prediction: int, probabilities: dict[str, float]) -> None:
+    """Register the user input as a JSON file in the data bucket."""
+    logger.debug(
+        f"Enriching dataset with features: {features}, prediction: {prediction}, probabilities: {probabilities}"
+    )
+
+    tmp_dir = None
+    tmp_dir = tempfile.mkdtemp()
+    db_dir = Path(tmp_dir) / "enriched" / "new_rows"
+
+    timestamp = datetime.now().strftime(r"%Y-%m-%d--%H-%M-%S-%f")
+
+    features["prediction"] = prediction
+    features["probabilities"] = probabilities.get("diabetes", 0.0)
+
+    new_row_path = Path(db_dir) / f"{timestamp}.json"
+    new_row_path.parent.mkdir(parents=True, exist_ok=True)
+    bucket_path = f"enriched/new_rows/{new_row_path.name}"
+    with open(new_row_path, "a") as json_file:
+        json.dump(features, json_file)
+
+    storage_client = storage.Client()
+    bucket_name = os.environ.get("DATA_STORAGE_BUCKET_NAME")
+    if bucket_name:
+        bucket = storage_client.bucket(bucket_name)
+        blob = bucket.blob(bucket_path)
+        try:
+            blob.upload_from_filename(str(new_row_path))
+            logger.info(f"New row uploaded to gs://{bucket_name}/{bucket_path}")
+        except Exception as e:
+            logger.warning(f"Failed to upload a new row with the user's input: {e}")
+    else:
+        logger.warning("Env var DATA_STORAGE_BUCKET_NAME not set. Skipping upload of new row.")
