@@ -103,6 +103,22 @@ checklist for the exam. The parenthesis at the end indicates what module the bul
 ## Training
 Run: uv run python -m diabetic_classification.train
 
+For the hyperparameter configuration we use Hydra config files, which can be found in the 'configs/hydra' directory. These parameters are added to the generated model folder, in a 'hydra' subfolder.
+
+### Frontend
+The Streamlit UI lives in `frontend.py` and calls the FastAPI backend. The API must be running.
+
+1) Start the backend (default: http://127.0.0.1:8000)
+```bash
+make run-api
+```
+2) Run the frontend from the repo root:
+
+```bash
+make run-frontend
+```
+
+To point the UI at a different backend, set `BACKEND_URL` (or `BACKEND`) or use the sidebar input. The frontend calls `/predict/diagnosed_diabetes/MLP/feature_set1/`.
 The training script uses Hydra for hyperparameter configuration management. The configuration files are located at `configs/hydra`. The parameters used are logged together with the model, in a 'hydra' subfolder.
 
 ### Hyperparameter sweep

@@ -1,0 +1,1 @@
+uv run streamlit run src/diabetic_classification/frontend.py
