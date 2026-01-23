@@ -45,10 +45,12 @@ class DummyTrainer:
 
 
 def test_valid_optimizer(cfg_factory, monkeypatch, tmp_path) -> None:
-    cfg = cfg_factory([
-        f"trainer.models_dir={tmp_path.as_posix()}",
-        "trainer.max_epochs=1",
-    ])
+    cfg = cfg_factory(
+        [
+            f"+trainer.models_dir={tmp_path.as_posix()}",
+            "trainer.max_epochs=1",
+        ]
+    )
 
     monkeypatch.setattr(train_module, "DiabetesHealthDataset", DummyDataModule)
     monkeypatch.setattr(train_module.pl, "Trainer", DummyTrainer)
@@ -57,11 +59,13 @@ def test_valid_optimizer(cfg_factory, monkeypatch, tmp_path) -> None:
 
 
 def test_invalid_optimizer(cfg_factory, monkeypatch, tmp_path) -> None:
-    cfg = cfg_factory([
-        "optimizer.name=invalid",
-        f"trainer.models_dir={tmp_path.as_posix()}",
-        "trainer.max_epochs=1",
-    ])
+    cfg = cfg_factory(
+        [
+            "optimizer.name=invalid",
+            f"+trainer.models_dir={tmp_path.as_posix()}",
+            "trainer.max_epochs=1",
+        ]
+    )
 
     monkeypatch.setattr(train_module, "DiabetesHealthDataset", DummyDataModule)
     monkeypatch.setattr(train_module.pl, "Trainer", DummyTrainer)
@@ -83,7 +87,7 @@ def test_train_runs_fit_and_test(cfg_factory, tmp_path, monkeypatch) -> None:
 
     cfg = cfg_factory(
         [
-            f"trainer.models_dir={tmp_path.as_posix()}",
+            f"+trainer.models_dir={tmp_path.as_posix()}",
             "trainer.max_epochs=1",
         ]
     )
