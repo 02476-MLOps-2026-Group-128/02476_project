@@ -6,8 +6,8 @@ RUN apt update && \
 
 WORKDIR /app
 
-COPY requirements_frontend.txt /app/requirements_frontend.txt
-COPY frontend.py /app/frontend.py
+COPY dockerfiles/requirements_frontend.txt /app/requirements_frontend.txt
+COPY src/diabetic_classification/frontend.py /app/frontend.py
 
 RUN --mount=type=cache,target=/root/.cache/pip pip install -r requirements_frontend.txt
 
