@@ -5,4 +5,5 @@ container_image = "europe-west4-docker.pkg.dev/diabetic-classification-484510/co
 container_image_tag = "ea69ae5"
 service_account_name = "fastapi-sa"
 artifacts_gcs_uri = "gs://diabetic-classification-model-bucket/"
+data_storage_bucket_name = "diabetes-health-indicators-dataset"
 log_level = "info"
