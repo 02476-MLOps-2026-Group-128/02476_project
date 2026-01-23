@@ -150,3 +150,8 @@ uv run streamlit run frontend.py
 ```
 
 To point the UI at a different backend, set `BACKEND_URL` (or `BACKEND`) or use the sidebar input. The frontend calls `/predict/diagnosed_diabetes/MLP/feature_set1/`.
+
+## Data Drift
+Our API exposes a `/reports` endpoint which serves data drift reports. The reports compare the training data to the user input data (TODO: add how we save the user input data to docs).
+The reports are generated using EvidentlyAI, and we use the `DataDriftPreset`, `TargetDriftPreset` and `DataQualityPreset` report templates.
+
