@@ -404,13 +404,15 @@ TRI_STATE_FIELDS = [
 
 @st.cache_data
 def load_feature_list(path_str: str) -> list[str]:
-    """Load the feature list from disk.
+    """
+    Load the feature list from disk.
 
     Args:
         path_str: Path to the feature set JSON file.
 
     Returns:
         List of feature names in the expected order.
+
     """
     path = Path(path_str)
     if path.exists():
@@ -426,13 +428,15 @@ def load_feature_list(path_str: str) -> list[str]:
 
 @st.cache_data
 def load_numeric_stats(path_str: str) -> dict[str, dict[str, float]]:
-    """Load normalization statistics for numeric features.
+    """
+    Load normalization statistics for numeric features.
 
     Args:
         path_str: Path to the standardization parameters CSV.
 
     Returns:
         Mapping of feature -> mean/std.
+
     """
     stats = {key: value.copy() for key, value in FALLBACK_NUMERIC_STATS.items()}
     path = Path(path_str)
@@ -462,7 +466,8 @@ def load_categorical_defaults(
     feature_list: list[str],
     numeric_features: set[str],
 ) -> dict[str, float]:
-    """Compute default values for categorical features from training data.
+    """
+    Compute default values for categorical features from training data.
 
     Args:
         path_str: Path to the processed training CSV.
@@ -471,6 +476,7 @@ def load_categorical_defaults(
 
     Returns:
         Mapping of categorical feature -> mean prevalence.
+
     """
     defaults = {feature: 0.0 for feature in feature_list if feature not in numeric_features}
     path = Path(path_str)
@@ -504,10 +510,12 @@ def apply_base_styles() -> None:
 
 
 def apply_result_styles(prediction: int | None) -> None:
-    """Inject background styling based on the prediction outcome.
+    """
+    Inject background styling based on the prediction outcome.
 
     Args:
         prediction: Model prediction (1 diabetes, 0 no diabetes).
+
     """
     if prediction is None:
         return
@@ -533,7 +541,8 @@ def apply_result_styles(prediction: int | None) -> None:
 
 
 def clamp(value: float, min_value: float, max_value: float) -> float:
-    """Clamp a value within min and max bounds.
+    """
+    Clamp a value within min and max bounds.
 
     Args:
         value: Value to clamp.
@@ -542,12 +551,14 @@ def clamp(value: float, min_value: float, max_value: float) -> float:
 
     Returns:
         Clamped value.
+
     """
     return max(min_value, min(value, max_value))
 
 
 def align_to_step(value: float, min_value: float, step: float) -> float:
-    """Align a value to a step grid.
+    """
+    Align a value to a step grid.
 
     Args:
         value: Value to align.
@@ -556,6 +567,7 @@ def align_to_step(value: float, min_value: float, step: float) -> float:
 
     Returns:
         Aligned value.
+
     """
     if step <= 0:
         return value
@@ -565,7 +577,8 @@ def align_to_step(value: float, min_value: float, step: float) -> float:
 
 
 def normalize_value(value: float, mean: float, std: float) -> float:
-    """Normalize a value using mean and standard deviation.
+    """
+    Normalize a value using mean and standard deviation.
 
     Args:
         value: Raw value.
@@ -574,6 +587,7 @@ def normalize_value(value: float, mean: float, std: float) -> float:
 
     Returns:
         Normalized value.
+
     """
     if std == 0:
         return 0.0
@@ -581,7 +595,8 @@ def normalize_value(value: float, mean: float, std: float) -> float:
 
 
 def render_numeric_field(field: NumericField, stats: dict[str, dict[str, float]]) -> float:
-    """Render a numeric input field.
+    """
+    Render a numeric input field.
 
     Args:
         field: Numeric field configuration.
@@ -589,6 +604,7 @@ def render_numeric_field(field: NumericField, stats: dict[str, dict[str, float]]
 
     Returns:
         Raw numeric value for the feature.
+
     """
     mean = stats.get(field.key, {}).get("mean", (field.min_value + field.max_value) / 2)
     default_value = clamp(mean, field.min_value, field.max_value)
@@ -624,7 +640,8 @@ def render_numeric_field(field: NumericField, stats: dict[str, dict[str, float]]
 
 
 def render_tri_state(label: str, key: str) -> float | None:
-    """Render a yes/no/unknown radio input.
+    """
+    Render a yes/no/unknown radio input.
 
     Args:
         label: Field label.
@@ -632,6 +649,7 @@ def render_tri_state(label: str, key: str) -> float | None:
 
     Returns:
         Raw value (1.0 for yes, 0.0 for no) or None for unknown.
+
     """
     choice = st.radio(
         label,
@@ -653,7 +671,8 @@ def encode_one_hot(
     feature_keys: list[str],
     defaults: dict[str, float],
 ) -> dict[str, float]:
-    """Encode a categorical selection into one-hot style features.
+    """
+    Encode a categorical selection into one-hot style features.
 
     Args:
         selection: Selected option.
@@ -663,6 +682,7 @@ def encode_one_hot(
 
     Returns:
         Dictionary of feature values for the category.
+
     """
     if selection in mapping:
         values = mapping[selection]
@@ -671,7 +691,8 @@ def encode_one_hot(
 
 
 def render_category_field(field: CategoryField, defaults: dict[str, float]) -> dict[str, float]:
-    """Render a categorical field and return encoded values.
+    """
+    Render a categorical field and return encoded values.
 
     Args:
         field: Category field configuration.
@@ -679,6 +700,7 @@ def render_category_field(field: CategoryField, defaults: dict[str, float]) -> d
 
     Returns:
         Dictionary of encoded feature values.
+
     """
     default_index = (
         field.options.index("I don't know") if "I don't know" in field.options else 0
@@ -709,7 +731,8 @@ def build_payload(
     categorical_defaults: dict[str, float],
     normalize_inputs: bool,
 ) -> dict[str, float]:
-    """Construct the payload to send to the API.
+    """
+    Construct the payload to send to the API.
 
     Args:
         feature_list: Ordered list of expected features.
@@ -721,6 +744,7 @@ def build_payload(
 
     Returns:
         Feature payload with all expected keys.
+
     """
     payload: dict[str, float] = {}
     for feature in feature_list:
@@ -740,7 +764,8 @@ def build_payload(
 
 
 def post_prediction(backend_url: str, payload: dict[str, float]) -> tuple[dict[str, Any] | None, str | None]:
-    """Send the payload to the prediction API.
+    """
+    Send the payload to the prediction API.
 
     Args:
         backend_url: Base URL of the backend service.
@@ -748,6 +773,7 @@ def post_prediction(backend_url: str, payload: dict[str, float]) -> tuple[dict[s
 
     Returns:
         Tuple of response JSON and error message.
+
     """
     url = f"{backend_url.rstrip('/')}{API_PATH}"
     try:
@@ -769,10 +795,12 @@ def post_prediction(backend_url: str, payload: dict[str, float]) -> tuple[dict[s
 
 
 def render_result(result: dict[str, Any]) -> None:
-    """Render the prediction result panel.
+    """
+    Render the prediction result panel.
 
     Args:
         result: API response payload.
+
     """
     prediction = int(result.get("prediction", 0))
     probabilities = result.get("probabilities", {})
