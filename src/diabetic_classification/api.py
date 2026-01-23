@@ -5,27 +5,27 @@ import os
 import shutil
 import tempfile
 import time
-import anyio
-import pandas as pd
 from contextlib import asynccontextmanager
 from enum import Enum
 from http import HTTPStatus
 from pathlib import Path
 from typing import Any
 
+import anyio
+import pandas as pd
 import torch
-from fastapi import Depends, FastAPI, HTTPException
-from fastapi.responses import HTMLResponse
-from google.cloud import storage
-from loguru import logger
-from prometheus_client import Counter, Gauge, Histogram, make_asgi_app
-from pydantic_settings import BaseSettings, SettingsConfigDict
 from evidently.legacy.metric_preset import (
     DataDriftPreset,
     DataQualityPreset,
     TargetDriftPreset,
 )
 from evidently.legacy.report import Report
+from fastapi import Depends, FastAPI, HTTPException
+from fastapi.responses import HTMLResponse
+from google.cloud import storage
+from loguru import logger
+from prometheus_client import Counter, Gauge, Histogram, make_asgi_app
+from pydantic_settings import BaseSettings, SettingsConfigDict
 
 from diabetic_classification.model import TabularMLP
 
