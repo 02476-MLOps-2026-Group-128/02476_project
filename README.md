@@ -1,5 +1,19 @@
 # Diabetes classification
 
+**Project description:**
+Diabetes is a chronic disease affecting millions worldwide, and early detection and classification are crucial for effective management and prevention of complications. The motivation behind this project is to leverage machine learning to provide accurate, accessible, and scalable tools for diabetes risk prediction and classification. By automating the analysis of patient data, we aim to support healthcare professionals in making informed decisions and empower individuals to better understand their health risks. The impact of such a system could be significant, potentially improving patient outcomes, optimizing resource allocation in healthcare, and raising awareness about diabetes risk factors.
+
+We will use the [Diabetes Health Indicators Dataset](https://www.kaggle.com/datasets/mohankrishnathalla/diabetes-health-indicators-dataset/data), which contains 100k patient records. The dataset includes a wide range of features such as demographic information (age, gender, race), lifestyle habits (smoking, physical activity, alchol consumption), family history, and clinical measurements (BMI, blood pressure, glucose levels). Handling missing values, feature engineering, and addressing class imbalance will be important steps in our data preprocessing and training pipeline.
+
+As the data is tabular, our initial models will include simple Multi-Layer Perceptron (MLP) neural networks, as well as established machine learning algorithms like XGBoost and RandomForest. These models are well-suited for structured data and offer a balance between interpretability and predictive power. We plan to experiment with ensemble methods to combine the strengths of different models. Hyperparameter tuning and cross-validation will be used to optimize performance, and we will evaluate models using metrics such as accuracy, ROC-AUC, and F1-score.
+
+The system is designed with modularity and extensibility in mind. We will use configuration files (managed with Hydra) to easily swap models, features, and training parameters. The codebase is organized to facilitate the addition of new models or preprocessing steps with minimal effort. Logging, testing, and continuous integration will be integrated to ensure code quality and reproducibility. The project will follow MLOps best practices, including version control for both code and data, containerization with Docker, and automated workflows.
+
+For deployment, we will utilize Google Cloud Platform (GCP) infrastructure, orchestrated via Terraform for reproducibility and scalability. The trained models will be served through a FastAPI application, enabling real-time inference. To make the system accessible to end-users, we will provide a Streamlit-based frontend that interacts with the API, allowing users to input survey data and receive predictions in an intuitive interface.
+
+Several challenges and risks are anticipated. Low correlation between features and targets may affect model performance, and class imbalance could lead to biased predictions. Overfitting is a risk, especially with complex models, so regularization and careful validation are necessary. Ensuring model interpretability is important for clinical adoption, and we will explore explainability techniques as part of our evaluation. Finally, deploying and maintaining the system in a cloud environment introduces operational challenges, including security, scalability, and cost management, which we will address through best practices and automation.
+
+
 ## Development
 **Installing pre-commit config:**
 ```bash
