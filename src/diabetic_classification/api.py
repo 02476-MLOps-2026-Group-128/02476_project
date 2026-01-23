@@ -12,9 +12,17 @@ from http import HTTPStatus
 from pathlib import Path
 from typing import Any
 
+import anyio
 import pandas as pd
 import torch
+from evidently.legacy.metric_preset import (
+    DataDriftPreset,
+    DataQualityPreset,
+    TargetDriftPreset,
+)
+from evidently.legacy.report import Report
 from fastapi import Depends, FastAPI, HTTPException
+from fastapi.responses import HTMLResponse
 from google.cloud import storage
 from loguru import logger
 from prometheus_client import Counter, Histogram, make_asgi_app
@@ -439,6 +447,56 @@ async def predict(
         "prediction": prediction,
         "probabilities": probs,
     }
+
+BUCKET_NAME = "diabetes-health-indicators-dataset"
+
+@app.get("/reports", response_class=HTMLResponse)
+async def reports():
+    """Get request method that returns a monitoring report."""
+    reference_data, input_data = get_data_drift_data()
+
+    # Evidently expects the target column to be named "target"
+    reference_data = reference_data.rename(columns={"diagnosed_diabetes": "target"})
+    input_data = input_data.rename(columns={"diagnosed_diabetes": "target"})
+
+    # Find columns that are 100% null in input_data
+    empty_cols = input_data.columns[input_data.isnull().all()]
+
+    # Drop them from both so the schemas match
+    reference_data = reference_data.drop(columns=empty_cols)
+    input_data = input_data.drop(columns=empty_cols)
+
+    # Generate Evidently report and save as HTML
+    data_drift_report = Report(metrics=[DataDriftPreset(), TargetDriftPreset(), DataQualityPreset()])
+    data_drift_report.run(current_data=input_data, reference_data=reference_data)
+    data_drift_report.save_html("datadrift.html")
+
+    # Read the generated HTML report and return as response
+    async with await anyio.open_file("datadrift.html", encoding="utf-8") as f:
+        html_content = await f.read()
+
+    return HTMLResponse(content=html_content, status_code=200)
+
+def get_data_drift_data(n = None) -> tuple[pd.DataFrame, pd.DataFrame]:
+    """Download the enriched diabetes dataset from GCP bucket and split into train and input data."""
+    client = storage.Client()
+    bucket = client.bucket(BUCKET_NAME)
+    blob = bucket.blob("enriched/diabetes_dataset.csv")
+    blob.download_to_filename("input_data.csv")
+    data = pd.read_csv("input_data.csv")
+
+    # The first 100.000 rows were used as training data
+    train_length = 100000
+    train_data = data.iloc[:train_length]
+
+    # The remaining rows were user input
+    input_data = data.iloc[train_length:]
+
+     # If n is specified, return only the last n rows of input_data
+    if n is None:
+        return train_data, input_data
+
+    return train_data, input_data.tail(n)
 
 
 def upload_new_row(features: dict[str, float], prediction: int, probabilities: dict[str, float]) -> None:

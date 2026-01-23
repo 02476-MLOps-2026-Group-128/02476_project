@@ -37,7 +37,7 @@ def _filter_model_weights(state_dict: dict[str, torch.Tensor]) -> dict[str, torc
 
 
 def main() -> int:
-    """Convert a PyTorch Lightning .ckpt to a .pt state_dict for the API model."""
+    """Command-line tool to convert a PyTorch Lightning .ckpt to a .pt state_dict for the API model."""
     parser = argparse.ArgumentParser(
         description="Convert a PyTorch Lightning .ckpt to a .pt state_dict for the API model."
     )

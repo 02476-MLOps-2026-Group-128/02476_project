@@ -6,8 +6,6 @@
 uv run pre-commit install
 ```
 
-
-
 ## Deployment
 
 ### Terraform Infrastructure
@@ -87,7 +85,10 @@ checklist for the exam. The parenthesis at the end indicates what module the bul
 
 
 ## Training
-Run: uv run python -m diabetic_classification.train
+Run: 
+```bash
+uv run python -m diabetic_classification.train
+```
 
 For the hyperparameter configuration we use Hydra config files, which can be found in the 'configs/hydra' directory. These parameters are added to the generated model folder, in a 'hydra' subfolder.
 
@@ -105,7 +106,24 @@ make run-frontend
 ```
 
 To point the UI at a different backend, set `BACKEND_URL` (or `BACKEND`) or use the sidebar input. The frontend calls `/predict/diagnosed_diabetes/MLP/feature_set1/`.
-The training script uses Hydra for hyperparameter configuration management. The configuration files are located at `configs/hydra`. The parameters used are logged together with the model, in a 'hydra' subfolder.
+
+The API expects the models to be stored in the `models/api_models/` directory, following a specific structure based on problem type, model type, feature set, and version. Each version folder should contain a `config.json` file specifying the model path and architecture details, along with the actual model file (e.g., `model.pt`).
+
+A model is already given in the repository for testing purposes. You can find it at:
+`models/api_models/diagnosed_diabetes/MLP/feature_set1/v1/`
+
+To convert a Lightning checkpoint (`.ckpt`) to the required PyTorch state dictionary format (`.pt`), you can use the provided utility script:
+```bash
+uv run tools/ckpt_to_pt.py path/to/your/model.ckpt models/api_models/diagnosed_diabetes/MLP/feature_set1/v1/ --output-name model.pt
+```
+Make sure to create the corresponding `config.json` in the same directory to match your model's architecture.
+
+## Data Drift
+Our API exposes a `/reports` endpoint which serves data drift reports. The reports compare the training data to the user input data (TODO: add how we save the user input data to docs).
+The reports are generated using EvidentlyAI, and we use the `DataDriftPreset`, `TargetDriftPreset` and `DataQualityPreset` report templates.
+
+The `DataDriftPreset` can not deal with completely empty columns, so if no data is available for a feature, we remove the column before generating the report.
+
 
 ### Hyperparameter sweep
 It is possible to overwrite the hydra configuration parameters from the command line, using the `-m` (`--multirun`) flag. Hydra will then run the training script multiple times, once for each combination of the specified parameters.
