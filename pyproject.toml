@@ -25,10 +25,13 @@ dependencies = [
     "hydra-core>=1.3.2",
     "kaggle>=1.8.3",
     "kagglehub[pandas-datasets]>=0.4.0",
+    "locust>=2.43.1",
     "loguru>=0.7.3",
     "numpy>=2.4.0",
     "pandas>=2.3.3",
+    "prometheus-client>=0.24.1",
     "pyarrow>=22.0.0",
+    "pydantic-settings>=2.12.0",
     "pytorch-lightning>=2.6.0",
     "scikit-learn>=1.8.0",
     "torch==2.6.0",
@@ -51,20 +54,28 @@ dev = [
     "ipykernel>=7.1.0",
     "mypy>=1.19.1",
     "pandas-stubs>=2.3.3.260113",
+    "httpx>=0.28.1",
 ]
 
 
 [tool.uv.sources]
 torch = [
-    { index = "pytorch-cpu" },
+    { index = "pytorch-cu124", marker = "sys_platform == 'linux' and platform_machine == 'x86_64'" },
 ]
 torchvision = [
-    { index = "pytorch-cpu" },
+    { index = "pytorch-cu124", marker = "sys_platform == 'linux' and platform_machine == 'x86_64'" },
+]
+
+[tool.uv]
+# Ensure uv resolves dependencies for both macOS arm64 (CPU) and Linux x86_64 (CUDA)
+required-environments = [
+    "sys_platform == 'darwin' and platform_machine == 'arm64'",
+    "sys_platform == 'linux' and platform_machine == 'x86_64'",
 ]
 
 [[tool.uv.index]]
-name = "pytorch-cpu"
-url = "https://download.pytorch.org/whl/cpu"
+name = "pytorch-cu124"
+url = "https://download.pytorch.org/whl/cu124"
 explicit = true
 
 [tool.ruff]
@@ -77,7 +88,7 @@ lint.ignore = [
     "D203", # Ignore 1 blank line required before class docstring
     "D212", # Ignore multi-line docstring summary should start at the first line
 ]
-per-file-ignores = { "tests/*" = ["D"]} # Ignore all docstring errors in tests, since the test names are descriptive enough
+lint.per-file-ignores = { "tests/*" = ["D"]} # Ignore all docstring errors in tests, since the test names are descriptive enough
 
 [tool.coverage.run]
 omit = ["tests/*", "tmp/*", "*/_remote_module_non_scriptable.py"]
@@ -108,4 +119,12 @@ ignore_missing_imports = true
 
 [[tool.mypy.overrides]]
 module = "sklearn.*"
+ignore_missing_imports = true
+
+[[tool.mypy.overrides]]
+module = "google"
+ignore_missing_imports = true
+
+[[tool.mypy.overrides]]
+module = "google.*"
 ignore_missing_imports = true
