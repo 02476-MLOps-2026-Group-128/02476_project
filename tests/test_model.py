@@ -3,7 +3,6 @@ import torch
 
 from diabetic_classification.model import DiabetesClassifier
 
-
 TEST_INPUT_DIM = 5
 
 

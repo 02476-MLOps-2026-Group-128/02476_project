@@ -2,9 +2,8 @@ import pytest
 from hydra import compose, initialize
 from hydra.core.global_hydra import GlobalHydra
 
-
 DEFAULT_OVERRIDES = [
-    
+
     "paths.project_root=./",
     "data.data_dir=./data",
 ]

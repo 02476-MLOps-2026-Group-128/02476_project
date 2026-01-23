@@ -5,7 +5,6 @@ import torch
 
 import diabetic_classification.train as train_module
 
-
 TRAIN_FN = getattr(train_module.train, "__wrapped__", train_module.train)
 
 
