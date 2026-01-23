@@ -418,15 +418,13 @@ def get_data_drift_data(n = None) -> tuple[pd.DataFrame, pd.DataFrame]:
     blob = bucket.blob("enriched/diabetes_dataset.csv")
     blob.download_to_filename("input_data.csv")
     data = pd.read_csv("input_data.csv")
-    print(f"Downloaded data shape: {data.shape}")
 
     # The first 100.000 rows were used as training data
     train_length = 100000
     train_data = data.iloc[:train_length]
-    print(f"Training data shape: {train_data.shape}")
+
     # The remaining rows were user input
     input_data = data.iloc[train_length:]
-    print(f"Input data shape: {input_data.shape}")
 
      # If n is specified, return only the last n rows of input_data
     if n is None:
