@@ -3,6 +3,8 @@ from fastapi.testclient import TestClient
 
 from diabetic_classification.api import app
 
+PREDICT_DIAGNOSED_DIABETES_MLP_FEATURE_SET1_URL = "/predict/diagnosed_diabetes/MLP/feature_set1/"
+
 
 @pytest.fixture(scope="module")
 def client():
@@ -72,7 +74,7 @@ def test_list_models(client):
 def test_predict(client):
     features = SAMPLE_FEATURES.copy()
 
-    response = client.post("/predict/diagnosed_diabetes/MLP/feature_set1/", json=features)
+    response = client.post(PREDICT_DIAGNOSED_DIABETES_MLP_FEATURE_SET1_URL, json=features)
     assert response.status_code == 200
     data = response.json()
     assert "prediction" in data
@@ -83,7 +85,7 @@ def test_predict_missing_feature(client):
     features = SAMPLE_FEATURES.copy()
     del features["physical_activity_minutes_per_week"]
 
-    response = client.post("/predict/diagnosed_diabetes/MLP/feature_set1/", json=features)
+    response = client.post(PREDICT_DIAGNOSED_DIABETES_MLP_FEATURE_SET1_URL, json=features)
     assert response.status_code == 400
     data = response.json()
     assert "physical_activity_minutes_per_week" in data["detail"]
@@ -101,7 +103,7 @@ def test_predict_unexpected_feature(client):
     features = SAMPLE_FEATURES.copy()
     features["unknown_feature"] = 123.45
 
-    response = client.post("/predict/diagnosed_diabetes/MLP/feature_set1/", json=features)
+    response = client.post(PREDICT_DIAGNOSED_DIABETES_MLP_FEATURE_SET1_URL, json=features)
     assert response.status_code == 400
     data = response.json()
     assert "unknown_feature" in data["detail"]
@@ -111,7 +113,7 @@ def test_predict_probabilities_valid(client):
     """Test that prediction probabilities are valid."""
     features = SAMPLE_FEATURES.copy()
 
-    response = client.post("/predict/diagnosed_diabetes/MLP/feature_set1/", json=features)
+    response = client.post(PREDICT_DIAGNOSED_DIABETES_MLP_FEATURE_SET1_URL, json=features)
     assert response.status_code == 200
     data = response.json()
 
