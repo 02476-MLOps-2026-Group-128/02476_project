@@ -5,6 +5,8 @@ import os
 import shutil
 import tempfile
 import time
+import anyio
+import pandas as pd
 from contextlib import asynccontextmanager
 from enum import Enum
 from http import HTTPStatus
@@ -13,9 +15,16 @@ from typing import Any
 
 import torch
 from fastapi import Depends, FastAPI, HTTPException
+from fastapi.responses import HTMLResponse
 from google.cloud import storage
 from loguru import logger
 from pydantic_settings import BaseSettings, SettingsConfigDict
+from evidently.legacy.metric_preset import (
+    DataDriftPreset,
+    DataQualityPreset,
+    TargetDriftPreset,
+)
+from evidently.legacy.report import Report
 
 from diabetic_classification.model import TabularMLP
 
@@ -372,3 +381,47 @@ async def predict(
         "prediction": prediction,
         "probabilities": probs,
     }
+
+BUCKET_NAME = "diabetes-health-indicators-dataset"
+
+@app.get("/reports", response_class=HTMLResponse)
+async def reports():
+    """Get request method that returns a monitoring report."""
+    reference_data = get_reference_data()
+    input_data = get_input_data()
+
+    reference_data = reference_data[input_data.columns]
+    # Evidently expects the target column to be named "target"
+    reference_data = reference_data.rename(columns={"diagnosed_diabetes": "target"})
+    input_data = input_data.rename(columns={"diagnosed_diabetes": "target"})
+
+    # Generate Evidently report and save as HTML
+    data_drift_report = Report(metrics=[DataDriftPreset(), DataQualityPreset(), TargetDriftPreset()])
+    data_drift_report.run(current_data=input_data, reference_data=reference_data)
+    data_drift_report.save_html("datadrift.html")
+
+    # Read the generated HTML report and return as response
+    async with await anyio.open_file("datadrift.html", encoding="utf-8") as f:
+        html_content = await f.read()
+
+    return HTMLResponse(content=html_content, status_code=200)
+
+def get_reference_data() -> pd.DataFrame:
+    """Download the processed train data from GCP bucket."""
+    bucket = storage.Client().bucket(BUCKET_NAME)
+    blob = bucket.blob("processed/train_data.csv")
+    blob.download_to_filename(blob.name)
+    return pd.read_csv(blob.name)
+
+def get_input_data(n = None) -> pd.DataFrame:
+    """Download n rows of input data from GCP bucket."""
+    bucket = storage.Client().bucket(BUCKET_NAME)
+    blob = bucket.blob("enriched/diabetes_dataset.csv")
+    blob.download_to_filename(blob.name)
+    data = pd.read_csv(blob.name)
+    # Remove the first 10000 rows, which were used for initial testing
+    data = data.iloc[10000:]
+    if n is None:
+        return data
+
+    return data.tail(n)
