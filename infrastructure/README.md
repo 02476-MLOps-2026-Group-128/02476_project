@@ -71,7 +71,7 @@ The Terraform configuration provisions:
 - `variables.tf`: Variable definitions
 - `terraform.tfvars`: Variable values
 - `../cloudbuild.yaml`: CI/CD build pipeline
-    - HOWEVER, as Cloud Build doesn't keep a cache between runs they take very long (20 mins). It is usually better to build the images locally and push to the registry:
+    - HOWEVER, as Cloud Build doesn\'t keep a cache between runs they take very long (20 mins). It is usually better to build the images locally and push to the registry:
     ```sh
     docker build -f dockerfiles/fastapi.dockerfile -t europe-west4-docker.pkg.dev/diabetic-classification-484510/container-registry/fastapi:latest -t europe-west4-docker.pkg.dev/diabetic-classification-484510/container-registry/fastapi:$(git rev-parse --short HEAD) .
 
