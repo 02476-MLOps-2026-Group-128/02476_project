@@ -167,6 +167,17 @@ uv run streamlit run frontend.py
 
 To point the UI at a different backend, set `BACKEND_URL` (or `BACKEND`) or use the sidebar input. The frontend calls `/predict/diagnosed_diabetes/MLP/feature_set1/`.
 
+The API expects the models to be stored in the `models/api_models/` directory, following a specific structure based on problem type, model type, feature set, and version. Each version folder should contain a `config.json` file specifying the model path and architecture details, along with the actual model file (e.g., `model.pt`).
+
+A model is already given in the repository for testing purposes. You can find it at:
+`models/api_models/diagnosed_diabetes/MLP/feature_set1/v1/`
+
+To convert a Lightning checkpoint (`.ckpt`) to the required PyTorch state dictionary format (`.pt`), you can use the provided utility script:
+```bash
+uv run tools/ckpt_to_pt.py path/to/your/model.ckpt models/api_models/diagnosed_diabetes/MLP/feature_set1/v1/ --output-name model.pt
+```
+Make sure to create the corresponding `config.json` in the same directory to match your model's architecture.
+
 ## Data Drift
 Our API exposes a `/reports` endpoint which serves data drift reports. The reports compare the training data to the user input data (TODO: add how we save the user input data to docs).
 The reports are generated using EvidentlyAI, and we use the `DataDriftPreset`, `TargetDriftPreset` and `DataQualityPreset` report templates.
