@@ -9,12 +9,12 @@ on:
       - main
 
 jobs:
-  test:
+  unit-tests:
     runs-on: ${{ matrix.operating-system }}
     strategy:
       matrix:
-        operating-system: [ "ubuntu-latest", "windows-latest", "macos-latest" ]
-        python-version: [ "3.12" ]
+        operating-system: ["ubuntu-latest", "windows-latest", "macos-latest"]
+        python-version: ["3.12"]
 
     steps:
       - name: Checkout code
@@ -33,13 +33,50 @@ jobs:
 
       - name: Run tests & coverage
         run: |
-          uv run coverage run -m pytest tests/
+          uv run coverage run -m pytest tests/ --ignore=tests/integration_tests
           uv run coverage report -m
 
+  integration-tests:
+    runs-on: ubuntu-latest
+    env:
+      BUCKET_NAME: diabetic-classification-model-bucket
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v6
+
+      - name: Auth with GCP
+        uses: google-github-actions/auth@v2
+        with:
+          credentials_json: ${{ secrets.GCLOUD_SERVICE_KEY }}
+
+      - name: Set up Cloud SDK
+        uses: google-github-actions/setup-gcloud@v2
+
+      - name: Download inference models from GCS
+        run: gcloud storage cp -r gs://$BUCKET_NAME/models/ .
+
+      - name: Download inference config from GCS
+        run: gcloud storage cp -r gs://$BUCKET_NAME/configs/ .
+
+      - name: Setup uv
+        uses: astral-sh/setup-uv@v7
+        with:
+          python-version: "3.12"
+          enable-cache: true
+
+      - name: Install dependencies
+        run: |
+          uv sync --dev --locked
+          uv run pip list
+
+      - name: Run integration tests
+        run: |
+          uv run pytest tests/integration_tests
+
   build:
-    needs: test
+    needs: [unit-tests, integration-tests]
     if: ${{ github.event_name == 'push' }}
-    runs-on: ${{ matrix.operating-system }}
+    runs-on: ubuntu-latest
     steps:
       - name: Checkout code
         uses: actions/checkout@v6
@@ -53,4 +90,4 @@ jobs:
         uses: google-github-actions/setup-gcloud@v2
 
       - name: Submit build
-        run: gcloud builds submit . --config=cloudbuild.yaml
+        run: gcloud builds submit . --config=cloudbuild.yaml --substitutions=SHORT_SHA=${{ github.sha }}
