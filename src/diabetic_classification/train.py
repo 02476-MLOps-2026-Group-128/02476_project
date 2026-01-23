@@ -1,12 +1,15 @@
 from __future__ import annotations
 
 import json
+import logging
+import os
 from datetime import datetime
 from pathlib import Path
 
 import hydra
 import pytorch_lightning as pl
 import torch
+from hydra.core.hydra_config import HydraConfig
 from pytorch_lightning.callbacks import ModelCheckpoint
 
 from diabetic_classification.data import DiabetesHealthDataset
@@ -43,17 +46,53 @@ def compute_pos_weight(labels: torch.Tensor) -> torch.Tensor:
     return negatives / positives
 
 
+def setup_logging():
+    """
+    Set up the logger that Hydra uses to log to its train.log file.
+
+    Calling logging.info will log to both console and file.
+    """
+    log_dir = HydraConfig.get().runtime.output_dir
+    log_file = f"{log_dir}/train.log"
+
+    logging.basicConfig(
+        level=logging.INFO,
+        format="%(asctime)s | %(levelname)s | %(name)s | %(message)s",
+        handlers=[
+            logging.FileHandler(log_file),
+            logging.StreamHandler(),
+        ],
+    )
+
+
 @hydra.main(version_base=None, config_path="../../configs/hydra", config_name="config")
 def train(cfg) -> None:
     """Train the diabetes classifier with PyTorch Lightning, using the specified Hydra configuration."""
+    setup_logging()
+
     pl.seed_everything(cfg.trainer.seed, workers=True)
 
     if not cfg.data.target_attributes:
         raise ValueError("Specify at least one target attribute.")
 
+    model_dir: Path
+    model_dir_env = os.environ.get(
+        "AIP_MODEL_DIR")  # Vertex AI compatibility: https://docs.cloud.google.com/vertex-ai/docs/reference/rest/v1/CustomJobSpec
+    if model_dir_env is not None:
+        if model_dir_env.startswith("gs://"):
+            # the config file does not allow /gcs/ paths, so we convert here.
+            # This only overwrites this variable, so the hydra logs are lost.
+            model_dir_env = model_dir_env.replace("gs://", "/gcs/")
+        model_dir = Path(model_dir_env)
+    else:
+        model_dir = Path(cfg.paths.models_dir)
+
     timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
-    model_dir = Path(cfg.trainer.models_dir) / timestamp
-    model_dir.mkdir(parents=True, exist_ok=True)
+    model_dir = model_dir / timestamp
+    if cfg.trainer.enable_checkpointing:
+        model_dir.mkdir(parents=True, exist_ok=True)
+
+    print(f"Model artifacts will be saved to: {model_dir.resolve()}")
 
     data = DiabetesHealthDataset(
         data_dir=Path(cfg.data.data_dir),
@@ -90,22 +129,29 @@ def train(cfg) -> None:
         max_epochs=cfg.trainer.max_epochs,
         default_root_dir=model_dir,
         deterministic=cfg.trainer.deterministic,
+        logger=cfg.trainer.logger,
+        enable_checkpointing=cfg.trainer.enable_checkpointing,
         log_every_n_steps=cfg.trainer.log_every_n_steps,
         accelerator=cfg.trainer.accelerator,
         devices=cfg.trainer.devices,
-        callbacks=[
-            ModelCheckpoint(
-                dirpath=model_dir,
-                filename="model-{epoch:02d}-{val_loss:.4f}",
-                save_top_k=cfg.trainer.model_checkpoint.save_top_k,
-                monitor=cfg.trainer.model_checkpoint.monitor,
-                mode=cfg.trainer.model_checkpoint.mode,
-                save_last=cfg.trainer.model_checkpoint.save_last,
-            )
-        ],
+        callbacks=(
+            [] if not cfg.trainer.enable_checkpointing else [
+                ModelCheckpoint(
+                    dirpath=model_dir,
+                    filename="model-{epoch:02d}-{val_loss:.4f}",
+                    save_top_k=cfg.trainer.model_checkpoint.save_top_k,
+                    monitor=cfg.trainer.model_checkpoint.monitor,
+                    mode=cfg.trainer.model_checkpoint.mode,
+                    save_last=cfg.trainer.model_checkpoint.save_last,
+                )
+            ]
+        ),
     )
     trainer.fit(model, datamodule=data)
-    trainer.test(model, datamodule=data)
+    test_results = trainer.test(model, datamodule=data)
+    logging.info("Test results:")
+    for metric, value in test_results[0].items():
+        logging.info("  %s: %.6f", metric, value)
 
 
 if __name__ == "__main__":

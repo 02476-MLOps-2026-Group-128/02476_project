@@ -1,2 +1,8 @@
 # Path to project root
 project_root: ${oc.env:PROJECT_ROOT, ${hydra:runtime.cwd}}
+
+# Path to output root directory.
+output_root: ${oc.env:AIP_MODEL_DIR, ${hydra:runtime.cwd}/models}
+
+# Directory to save trained models.
+models_dir: models # Path as string, should be converted to Path
