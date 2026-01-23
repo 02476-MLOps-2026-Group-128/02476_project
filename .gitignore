@@ -185,5 +185,14 @@ data/raw/
 lightning_logs/
 *.ckpt
 
+# Model files
+*.pt
+*.pth
+
 # Models
 models/
+
+# Terraform
+.terraform/
+*.tfstate
+*.tfstate.backup
