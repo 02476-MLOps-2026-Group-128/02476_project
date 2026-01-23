@@ -71,13 +71,13 @@ will check the repositories and the code to verify your answers.
 * [ ] Use profiling to optimize your code (M12)
 * [x] Use logging to log important events in your code (M14)
 * [x] Use Weights & Biases to log training progress and other important metrics/artifacts in your code (M14)
-* [ ] Consider running a hyperparameter optimization sweep (M14)
+* [x] Consider running a hyperparameter optimization sweep (M14)
 * [x] Use PyTorch-lightning (if applicable) to reduce the amount of boilerplate in your code (M15)
 
 ### Week 2
 
 * [x] Write unit tests related to the data part of your code (M16)
-* [ ] Write unit tests related to model construction and or model training (M16)
+* [x] Write unit tests related to model construction and or model training (M16)
 * [x] Calculate the code coverage (M16)
 * [x] Get some continuous integration running on the GitHub repository (M17)
 * [x] Add caching and multi-os/python/pytorch testing to your continuous integration (M17)
@@ -87,19 +87,19 @@ will check the repositories and the code to verify your answers.
 * [ ] Add a continues workflow that triggers when changes to the model registry is made (M19)
 * [x] Create a data storage in GCP Bucket for your data and link this with your data version control setup (M21)
 * [x] Create a trigger workflow for automatically building your docker images (M21)
-* [ ] Get your model training in GCP using either the Engine or Vertex AI (M21)
+* [x] Get your model training in GCP using either the Engine or Vertex AI (M21)
 * [x] Create a FastAPI application that can do inference using your model (M22)
 * [x] Deploy your model in GCP using either Functions or Run as the backend (M23)
 * [x] Write API tests for your application and setup continues integration for these (M24)
 * [x] Load test your application (M24)
 * [ ] Create a more specialized ML-deployment API using either ONNX or BentoML, or both (M25)
-* [ ] Create a frontend for your API (M26)
+* [x] Create a frontend for your API (M26)
 
 ### Week 3
 
-* [ ] Check how robust your model is towards data drifting (M27)
+* [x] Check how robust your model is towards data drifting (M27)
 * [x] Setup collection of input-output data from your deployed application (M27)
-* [ ] Deploy to the cloud a drift detection API (M27)
+* [x] Deploy to the cloud a drift detection API (M27)
 * [x] Instrument your API with a couple of system metrics (M28)
 * [ ] Setup cloud monitoring of your instrumented application (M28)
 * [ ] Create one or more alert systems in GCP to alert you if your app is not behaving correctly (M28)
@@ -112,7 +112,7 @@ will check the repositories and the code to verify your answers.
 * [x] Write some documentation for your application (M32)
 * [ ] Publish the documentation to GitHub Pages (M32)
 * [ ] Revisit your initial project description. Did the project turn out as you wanted?
-* [ ] Create an architectural diagram over your MLOps pipeline
+* [x] Create an architectural diagram over your MLOps pipeline
 * [ ] Make sure all group members have an understanding about all parts of the project
 * [x] Uploaded all your code to GitHub
 
@@ -134,7 +134,7 @@ will check the repositories and the code to verify your answers.
 >
 > Answer:
 
-s214658, s251707, s252918, s243250
+s214658, s251707, s252918,  s243250
 
 ### Question 3
 > **Did you end up using any open-source frameworks/packages not covered in the course during your project? If so**
@@ -203,13 +203,11 @@ Finally, we have added an `infrastructure/` folder to hold all the Terraform-rel
 >
 > Answer:
 
-For enforcing code formatting rules we used `ruff`. By default, ruff rules adhere to the `PEP 8` style guide. It is important to have such styling rules in larger projects, because it keeps the code readable and ensures consistent style across different developers. A consistent style removes noise in pull requests. For example, without a required style guide, developers could add/remove whitelines, according to their own style. This adds (unnecessary) changes, making pull requests less structured.
+For enforcing code formatting rules we used `ruff`. By default, ruff rules adhere to the `PEP 8` style guide. It is important to have styling rules in larger projects, because it keeps the code readable and ensures consistent style across developers. A consistent style removes noise in pull requests. Without a required style guide, developers could add or remove whitelines according to their own style. This adds unnecessary changes, making pull requests less structured.
 
-Requiring function documentation makes the code easier to maintain.
+Our custom `ruff` rules can be found in `pyproject.toml` (including the choices we have made about conflicting rules). We have overwritten the maximum line-length to 120 characters, applied rules for `imports, docstrings, naming, errors and warnings` (the rules these come with can be found [here](https://docs.astral.sh/ruff/rules/)). For tests we have not applied the docstrings requirement, since the test name should be self-explanatory.
 
-Our custom `ruff` rules can be found in `pyproject.toml` (including the choices we have made about conflicting rules). We have overwritten the maximum line-length to 120 characters, applied rules for `imports, docstrings, naming, errors and warnings` (the rules these come with can be found [here](https://docs.astral.sh/ruff/rules/)). For tests we have not applied the docstrings reequirement, since the test name should be self-explanatory.
-
-We have also included the static type-checker `mypy` to run on both the `src` and `tests` folders,  which checks for type errors. Some packages conflict with `mypy`'s missing imports checker. We have ignored checks for these, which can be seen in `pyproject.toml`.
+We have also included the static type-checker `mypy` to run on both the `src` and `tests` folders, which checks for type errors. Some packages conflict with `mypy`'s missing imports checker. We have ignored checks for these, which can be seen in `pyproject.toml`.
 Passing these rules has been made required for pull requests to main, as can be seen in `.github/workflows/linting.yaml`.
 
 ## Version control
@@ -243,8 +241,8 @@ We implemented a total of 13 unit and integration tests, not including our separ
 > *code and even if we were then...*
 >
 > Answer:
-Vojta will do this one
---- question 8 fill here ---
+
+From our unit test coverage report, the overall statement coverage is 67%. Core utility modules are fully covered (__init__.py: 100%, constants.py: 100%). The model and training logic have relatively strong coverage (model.py: 82%, train.py: 83%). The main gap is in data.py, which has the lowest coverage at 59%, indicating most missing tests are related to data handling and preprocessing. We are therefore not at full coverage, and even if we were close to 100%, we would not assume the code is error free. High coverage only means lines were executed by tests, not that all edge cases, assumptions, or failure modes were validated. Tests can also be shallow or miss integration issues, external dependencies, data drift, and performance problems. In practice, we still rely on code reviews, sanity checks on outputs, and careful monitoring when models are used in production. Coverage is useful, but it is only one sign of quality.
 
 ### Question 9
 
@@ -372,9 +370,11 @@ To reproduce an experiment, take the `config.yaml` file which was used for the m
 >
 > Answer:
 
-Vojta?
+![Val/Balanced_acc](figures/W&BBalAcc.png)
+As seen in the first image, we tracked val/balanced_acc across epochs for several runs of the diabetes-mlp model. Balanced accuracy averages sensitivity and specificity, so it provides an unbiased view when class distributions are skewed, which is the case in our dataset. The initial runs (blue and yellow) were trained without any class-imbalance handling and therefore leaned toward predicting the majority class. This leads to deceptively stable but low balanced accuracy scores around 0.58–0.62. After applying class-imbalance correction through positive class weights, later runs (pink and green) achieve substantially higher balanced accuracy, reaching around 0.90–0.91. These improvements indicate that the model learned to correctly identify minority-class samples rather than inflating performance by favouring the majority class.
 
---- question 14 fill here ---
+![Val/loss](figures/W&Bloss.png)
+As seen in the second image, we also tracked val/loss, the validation loss we optimize during training.  Lower validation loss generally indicates better fit to the validation data and more reliable probability estimates. Unlike accuracy-based metrics, loss incorporates the confidence of predictions, which allows it to reveal situations where the model may be overconfident or poorly calibrated. For example, a model can achieve high accuracy while still assigning extreme probabilities to wrong predictions, resulting in higher loss. By comparing the loss curves with balanced accuracy, we can verify whether performance gains reflect improvements in minority-class detection or whether they stem from artifacts such as majority-class bias or overfitting.
 
 ### Question 15
 
@@ -412,7 +412,9 @@ Link to Dockerfile: https://github.com/02476-MLOps-2026-Group-128/02476_project/
 >
 > Answer:
 
-To perform debugging we mainly relied on our unit and integration tests set up with PyTest. This allowed us to use the built-in debugger and set break points to inspect the different variable initializations.
+To perform debugging, we mainly relied on our unit and integration tests set up with PyTest. This allowed us to use the built-in debugger and set breakpoints to inspect variable initializations and trace errors. We also used wandb logging to track down issues during model training and loguru API development, especially when working with data preprocessing or configuration files. Code reviews and pair programming were helpful for catching subtle bugs and improving code quality as a team.
+
+Regarding profiling, our model and training pipeline were simple and fast enough that we did not feel the need to perform extensive profiling or optimization. However, we did make a conscious effort to optimize data loading by using the pyarrow library, which significantly sped up reading large CSV files for training. This improvement reduced data loading bottlenecks and made our experiments more efficient.
 
 ## Working in the cloud
 
@@ -434,8 +436,8 @@ We used:
 - Buckets to store data, models and configuration like feature sets
 - Artifact registry for docker images
 - Cloud Run for deploying the inference api and frontend
-- Vertex AI for?...
-- IAM for creating service accounts for the github workflows
+- Vertex AI for training our models
+- IAM for creating service accounts for the github workflows, the api and the frontend
 
 ### Question 18
 
@@ -481,7 +483,8 @@ Here is a screenshot of our artifact registry:
 >
 > Answer:
 
-Here is a screenshot of our GCP cloud build history: ![gcp_build_history](figures/gcp_build_history.png)
+Here is a screenshot of our GCP cloud build history:
+![gcp_build_history](figures/gcp_build_history.png)
 
 ### Question 22
 
@@ -573,7 +576,9 @@ where `sample.json` contains the required feature mappings. The expected input s
 >
 > Answer:
 
-For functional testing we created integration tests for pytest with httpx
+We performed both functional and load testing of our API. For functional testing, we wrote integration tests using pytest and httpx to verify that all API endpoints worked as expected. These tests ensured that models and feature sets were loaded correctly and that the inference endpoint returned valid predictions for a variety of input cases.
+
+For load testing, we used Locust to simulate 100 concurrent users making requests to the deployed API on Google Cloud Run. The service maintained a 99th percentile response time of 78 ms overall, with the slowest endpoint (inference) reaching 82 ms at the 99th percentile. These results demonstrate that our API can handle significant load while maintaining a fast and responsive user experience.
 
 ### Question 26
 
@@ -588,11 +593,9 @@ For functional testing we created integration tests for pytest with httpx
 >
 > Answer:
 
---- question 26 fill here ---
+We implemented monitoring in two main ways. First, we integrated Prometheus into our FastAPI application to track key operational metrics such as the number of requests, inference latency, and error counts. These metrics provide valuable insights into the health and performance of the API, and can be used to detect bottlenecks, monitor usage patterns, and inform decisions about scaling the deployment. While we did not manage to set up a full cloud monitoring pipeline to visualize or alert on these metrics, the Prometheus integration lays the groundwork for future observability improvements.
 
-=> Peter? Monitoring
-
-We have implemented data drift monitoring through the addition af the `/reports` endoint. The reports compare the training data to the user input data. The reports are generated using `EvidentlyAI`, and we use the `DataDriftPreset, TargetDriftPreset and DataQualityPreset` report templates.
+Second, we implemented data drift monitoring by adding a `/reports` endpoint to the API. This endpoint generates reports using EvidentlyAI, comparing the distribution of incoming user data to the original training data. We use the DataDriftPreset, TargetDriftPreset, and DataQualityPreset templates to detect shifts in data distributions, target variable drift, and overall data quality issues. This helps us identify when the model may need retraining or when the input data has changed significantly, which is critical for maintaining reliable predictions in production.
 
 ## Overall discussion of project
 
@@ -632,7 +635,7 @@ Here is a screenshot of our GCP cloud build history: ![cost breakdown from GCP](
 >
 > Answer:
 
---- question 28 fill here ---
+We used Streamlit to make a frontend that provides a structured form for diabetes prediction. It loads the active feature set from configs/feature_sets/feature_set1.json, numeric normalization stats from data/processed/standardization_params.csv, and categorical defaults from the processed training CSV. Users fill tabs for demographics, lifestyle, vitals, labs, and socioeconomic data; unknowns default to averages. Inputs are optionally normalized, encoded into the expected feature order, and sent to the FastAPI endpoint. The response is rendered with probability chips, progress bar, and color-themed result card. A sidebar lets users set the backend URL and toggle normalization, making local and cloud deployments interchangeable without code changes.
 
 ### Question 29
 
@@ -649,7 +652,13 @@ Here is a screenshot of our GCP cloud build history: ![cost breakdown from GCP](
 >
 > Answer:
 
---- question 29 fill here ---
+![System diagram](figures/SystemArchitecture.drawio.png)
+
+We start on a local machine where the codebase is developed and validated before any push. We use pre-commit hooks to run Ruff for linting/formatting and mypy for type checking, so issues are caught early. Hydra manages configuration for experiments (model settings, data paths, training parameters). Terraform defines the cloud resources as code. During training runs we log metrics and artifacts to Weights & Biases.
+For data and model versioning we rely on DVC. The dataset and trained model files are tracked with DVC and stored in a remote bucket on Google Cloud. When we enrich the dataset or produce a new model, we commit the updated DVC pointers together with the code, which keeps code, data, and models aligned.
+When code is pushed to GitHub, GitHub Actions runs our CI pipeline. On pull requests it executes code quality checks and unit/integration tests. When changes are merged to main, the pipeline builds Docker images for the training service, API, and frontend. Cloud Build uploads these images to Google Artifact Registry.
+For serving, Streamlit provides the web UI and FastAPI provides the backend API. Both run as containers on Cloud Run. The API loads the latest approved model and required feature information from the DVC-managed storage, runs inference, and returns predictions. User inputs are temporarily stored as JSON and coverted to CSV by a manual script so we can audit requests and reuse them for monitoring or retraining.
+For retraining, we trigger a Vertex AI training job using the training image from Artifact Registry. Outputs (checkpoints, logs) go to Cloud Storage, and metrics are tracked in Weights & Biases. After validation, the new model is added to DVC and becomes available to the deployed service. This closes the loop between usage and future model improvements.
 
 ### Question 30
 
@@ -663,7 +672,21 @@ Here is a screenshot of our GCP cloud build history: ![cost breakdown from GCP](
 >
 > Answer:
 
---- question 30 fill here ---
+One of the challenges in the project was understanding our data, which cost us significant time at the start of the project. The dataset we used contained more target features than we though. For example, not just `diagnosed_diabetes` was the target, but also `diabetes_stage_type_1` and `diabetes_stage_type_2`. Features such as `glucose_fasting` and `hba1c` were not the direct target features, but they were very strong indicators. Including these features inside our training lead to unrealistic test accuries, as high as 99%.
+
+Achieving a reasonable model performance when the dataset was properly understood was a challenge at first. We first use a tabular CNN model, but later moved to an MLP model. After choosing the right size for the model and setting an appropriate number of epochs, we managed to consistently train models with accuracies between 81%-81%.
+
+It was a bit of struggle when starting to use Vertex AI to also save the Hydra output. It is relatively easy to define where to output the model directory inside the train script. However, hydra's output is defined in the config file. Eventually, we have solved this by setting the output directory as an environment file in the `config_gpu.yaml` file:
+```
+baseOutputDirectory:
+  outputUriPrefix: gs://vertex-ai-outputs-diabetes
+```
+
+However, this config file did not accept the output URI to start with gcs (which we use for model output), so we have applied a workaround by checking the environment variable:
+
+```
+model_dir_env.replace("gs://", "/gcs/")
+```
 
 ### Question 31
 
@@ -683,3 +706,11 @@ Here is a screenshot of our GCP cloud build history: ![cost breakdown from GCP](
 
 
 * Student s243250 was in charge of setting up the data versioning and managing the enrichment of the dataset with the additional user inputs. Furthermore, he set up a first script to train a model in a docker container, and wrote a function that wasn't used in the final project to convert checkpoint files from the training of the model to the onnx format.
+
+* Student s251707 set up ruff code style checking for the project, implemented the use of Hydra for experiment configuration, created a trigger workflow for automatically building docker images in the cloud, set up model training in GCP using Vertex AI, added a reports endpoint for data drift analysis. I used generative AI for pull request summaries and helping with bugs.
+
+* Student s252918 trained the model and implemented the command-lina interface together with tests for the model and training mudules, Weights & Biases experiment tracking, and created the frontend for the API. Also attempted to set up cloud monitoring, but in the end we used the monitoring code from student s214658. I used generative AI for helping with code understanding, bugs, and github summaries.
+
+* Student s214658 led the development of the data processing pipeline, set up GitHub Actions for CI/CD, and managed the deployment of services using Terraform. I implemented the FastAPI inference backend, wrote integration, unit, and performance tests, and configured pre-commit hooks to enforce code quality. Throughout the project, I collaborated closely with the team to ensure smooth integration of all components and reliable cloud deployment.
+
+But overall most of the tasks have been shared between members of the group.
