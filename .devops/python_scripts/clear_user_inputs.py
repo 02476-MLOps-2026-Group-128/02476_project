@@ -1,15 +1,12 @@
-import json
 import os
-import tempfile
 from pathlib import Path
 
-import pandas as pd
 import typer
 from google.cloud import storage
 from loguru import logger
 
 
-def clear_user_inputs() -> Path:
+def clear_user_inputs() -> None:
     """Clear user-provided rows, that are saved as JSON files in the bucket."""
     storage_client = storage.Client()
     bucket_name = os.environ.get("DATA_STORAGE_BUCKET_NAME")

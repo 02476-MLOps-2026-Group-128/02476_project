@@ -30,6 +30,10 @@ resource "google_cloud_run_service" "fastapi" {
             value = var.artifacts_gcs_uri
         }
         env {
+            name  = "DATA_STORAGE_BUCKET_NAME"
+            value = var.data_storage_bucket_name
+        }
+        env {
             name  = "LOG_LEVEL"
             value = var.log_level
           }

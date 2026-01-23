@@ -121,7 +121,7 @@ def map_input_to_dataset(user_input: dict[str, float]) -> dict:
         "glucose_fasting": None,
         "glucose_postprandial": None,
         "hba1c": None,
-        "diabetes_risk_score": user_input.get("probabilities").get("diabetes"),
+        "diabetes_risk_score": user_input.get("probabilities"),
         "diabetes_stage": None,
         "diagnosed_diabetes": user_input.get("prediction"),
     }

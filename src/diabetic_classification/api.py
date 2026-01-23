@@ -94,7 +94,7 @@ MODEL_LOADING_TIME = Histogram(
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     """Load and clean up model on startup and shutdown."""
-    global model_registry, device, feature_sets, db_dir
+    global model_registry, device, feature_sets
 
     # 1. Determine the Base Path for Artifacts
     artifacts_gcs_uri = os.environ.get("ARTIFACTS_GCS_URI")
@@ -242,8 +242,6 @@ async def lifespan(app: FastAPI):
     model_load_time = time.perf_counter() - start_model_load
     MODEL_LOADING_TIME.observe(model_load_time)
     logger.info(f"Model registry initialized (loading time: {model_load_time:.2f}s)")
-
-    db_dir = base_path / "enriched" / "new_rows"
 
     yield
 
@@ -424,7 +422,7 @@ async def predict(
         f"Prediction: {prediction}, prob_diabetes={prob_class_1:.3f} "
         f"for {problem_type.value}/{model_type.value}/{feature_set.value}"
     )
-    upload_new_row(db_dir, features, prediction, probs)
+    upload_new_row(features, prediction, probs)
 
     PREDICTION_LATENCY.labels(
         model_type=model_type.value,
@@ -443,16 +441,20 @@ async def predict(
     }
 
 
-def upload_new_row(db_dir: str, features: dict[str, float], prediction: int, probabilities: dict[str, float]) -> None:
+def upload_new_row(features: dict[str, float], prediction: int, probabilities: dict[str, float]) -> None:
     """Register the user input as a JSON file in the data bucket."""
     logger.debug(
         f"Enriching dataset with features: {features}, prediction: {prediction}, probabilities: {probabilities}"
     )
 
+    tmp_dir = None
+    tmp_dir = tempfile.mkdtemp()
+    db_dir = Path(tmp_dir) / "enriched" / "new_rows"
+
     timestamp = datetime.now().strftime(r"%Y-%m-%d--%H-%M-%S-%f")
 
     features["prediction"] = prediction
-    features["probabilities"] = probabilities
+    features["probabilities"] = probabilities.get("diabetes", 0.0)
 
     new_row_path = Path(db_dir) / f"{timestamp}.json"
     new_row_path.parent.mkdir(parents=True, exist_ok=True)
