@@ -190,9 +190,13 @@ lightning_logs/
 *.pth
 
 # Models
-models/
+models/*
 
-# Multirun
+# Include api-ready models
+!models/api_models/
+!models/api_models/**/*.pt
+
+# Hydra multirun (hyperparameter sweeping)
 multirun/
 
 # Terraform
