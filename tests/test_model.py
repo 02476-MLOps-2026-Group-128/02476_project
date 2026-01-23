@@ -34,7 +34,7 @@ def test_shared_step_raises_on_shape_mismatch(cfg) -> None:
         input_dim=TEST_INPUT_DIM,
         output_dim=1,
     )
-    model.log = lambda *args, **kwargs: None
+    setattr(model, "log", lambda *args, **kwargs: None)
     x = torch.randn(2, TEST_INPUT_DIM)
     y = torch.zeros(2, 2)
     with pytest.raises(ValueError, match="Logits shape"):
