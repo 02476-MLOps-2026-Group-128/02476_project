@@ -365,9 +365,6 @@ async def predict(
     task_type = model_info["task_type"]
     expected_features = feature_sets[feature_set.value]
 
-    # Temporary workaround to load expected features from file
-    with open("configs/feature_sets/feature_set1.json", "r") as f:
-        expected_features = json.load(f)
     logger.debug(f"Using model version: {version} for {problem_type.value}/{model_type.value}/{feature_set.value}")
     logger.debug(f"Feature set version: {feature_set_versions[version]}")
     logger.debug(f"Model info{model_info}")
@@ -448,7 +445,9 @@ async def predict(
         "probabilities": probs,
     }
 
+
 BUCKET_NAME = "diabetes-health-indicators-dataset"
+
 
 @app.get("/reports", response_class=HTMLResponse)
 async def reports():
@@ -477,7 +476,8 @@ async def reports():
 
     return HTMLResponse(content=html_content, status_code=200)
 
-def get_data_drift_data(n = None) -> tuple[pd.DataFrame, pd.DataFrame]:
+
+def get_data_drift_data(n=None) -> tuple[pd.DataFrame, pd.DataFrame]:
     """Download the enriched diabetes dataset from GCP bucket and split into train and input data."""
     client = storage.Client()
     bucket = client.bucket(BUCKET_NAME)
@@ -492,7 +492,7 @@ def get_data_drift_data(n = None) -> tuple[pd.DataFrame, pd.DataFrame]:
     # The remaining rows were user input
     input_data = data.iloc[train_length:]
 
-     # If n is specified, return only the last n rows of input_data
+    # If n is specified, return only the last n rows of input_data
     if n is None:
         return train_data, input_data
 
