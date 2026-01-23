@@ -13,3 +13,7 @@ run-api:
 # Run cloudbuild
 cloudbuild:
 	bash .devops/scripts/run_cloudbuild.sh
+
+# Run the frontend server
+run-frontend:
+	bash .devops/scripts/run_frontend.sh

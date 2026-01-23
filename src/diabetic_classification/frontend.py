@@ -20,41 +20,38 @@ DEFAULT_FEATURES = [
     "age",
     "alcohol_consumption_per_week",
     "physical_activity_minutes_per_week",
-    "diet_score",
     "sleep_hours_per_day",
     "screen_time_hours_per_day",
     "family_history_diabetes",
-    "hypertension_history",
-    "cardiovascular_history",
     "bmi",
-    "waist_to_hip_ratio",
     "systolic_bp",
     "diastolic_bp",
     "heart_rate",
-    "cholesterol_total",
-    "hdl_cholesterol",
-    "ldl_cholesterol",
-    "triglycerides",
-    "glucose_postprandial",
-    "insulin_level",
+    "gender_female",
     "gender_male",
     "gender_other",
+    "ethnicity_asian",
     "ethnicity_black",
     "ethnicity_hispanic",
     "ethnicity_other",
     "ethnicity_white",
+    "education_level_graduate",
     "education_level_highschool",
     "education_level_no_formal",
     "education_level_postgraduate",
+    "income_level_high",
     "income_level_low",
     "income_level_lower-middle",
     "income_level_middle",
     "income_level_upper-middle",
+    "employment_status_employed",
     "employment_status_retired",
     "employment_status_student",
     "employment_status_unemployed",
+    "smoking_status_current",
     "smoking_status_former",
     "smoking_status_never",
+    "insulin_level",
 ]
 
 FALLBACK_NUMERIC_STATS = {
@@ -276,9 +273,7 @@ NUMERIC_FIELDS = {
     "systolic_bp": NumericField("systolic_bp", "Systolic blood pressure", "mmHg", 80, 200, 1, "number", False),
     "diastolic_bp": NumericField("diastolic_bp", "Diastolic blood pressure", "mmHg", 50, 130, 1, "number", False),
     "heart_rate": NumericField("heart_rate", "Heart rate", "bpm", 40, 140, 1, "slider", False),
-    "cholesterol_total": NumericField(
-        "cholesterol_total", "Total cholesterol", "mg/dL", 100, 300, 1, "number", True
-    ),
+    "cholesterol_total": NumericField("cholesterol_total", "Total cholesterol", "mg/dL", 100, 300, 1, "number", True),
     "hdl_cholesterol": NumericField("hdl_cholesterol", "HDL cholesterol", "mg/dL", 20, 120, 1, "number", True),
     "ldl_cholesterol": NumericField("ldl_cholesterol", "LDL cholesterol", "mg/dL", 40, 250, 1, "number", True),
     "triglycerides": NumericField("triglycerides", "Triglycerides", "mg/dL", 50, 400, 1, "number", True),
@@ -702,9 +697,7 @@ def render_category_field(field: CategoryField, defaults: dict[str, float]) -> d
         Dictionary of encoded feature values.
 
     """
-    default_index = (
-        field.options.index("I don't know") if "I don't know" in field.options else 0
-    )
+    default_index = field.options.index("I don't know") if "I don't know" in field.options else 0
     if field.widget == "radio":
         selection = st.radio(
             field.label,
@@ -827,9 +820,7 @@ def render_result(result: dict[str, Any]) -> None:
     """
     st.markdown(card, unsafe_allow_html=True)
     st.progress(prob_diabetes)
-    st.caption(
-        f"Diabetes probability: {prob_diabetes * 100:.1f}% | No diabetes probability: {prob_no * 100:.1f}%"
-    )
+    st.caption(f"Diabetes probability: {prob_diabetes * 100:.1f}% | No diabetes probability: {prob_no * 100:.1f}%")
 
 
 def main() -> None:
