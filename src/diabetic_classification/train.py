@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-import json
+import os
 from datetime import datetime
 from pathlib import Path
 
@@ -51,9 +51,22 @@ def train(cfg) -> None:
     if not cfg.data.target_attributes:
         raise ValueError("Specify at least one target attribute.")
 
+    model_dir: Path
+    model_dir_env = os.environ.get("AIP_MODEL_DIR") # Vertex AI compatibility: https://docs.cloud.google.com/vertex-ai/docs/reference/rest/v1/CustomJobSpec
+    if model_dir_env is not None:
+        if model_dir_env.startswith("gs://"):
+            # the config file does not allow /gcs/ paths, so we convert here.
+            # This only overwrites this variable, so the hydra logs are lost.
+            model_dir_env = model_dir_env.replace("gs://", "/gcs/")
+        model_dir = Path(model_dir_env)
+    else:
+        model_dir = Path(cfg.paths.models_dir)
+
     timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
-    model_dir = Path(cfg.trainer.models_dir) / timestamp
+    model_dir = model_dir / timestamp
     model_dir.mkdir(parents=True, exist_ok=True)
+
+    print(f"Model artifacts will be saved to: {model_dir.resolve()}")
 
     data = DiabetesHealthDataset(
         data_dir=Path(cfg.data.data_dir),

@@ -7,4 +7,4 @@ defaults:
 
 hydra:
   run:
-    dir: ${paths.project_root}/models/${now:%Y%m%d_%H%M%S}/hydra
+    dir: ${paths.output_root}/${now:%Y%m%d_%H%M%S}/hydra
