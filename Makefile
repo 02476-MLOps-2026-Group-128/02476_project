@@ -13,3 +13,7 @@ run-api:
 # Run cloudbuild
 cloudbuild:
 	bash .devops/scripts/run_cloudbuild.sh
+
+# Update the data
+update-data:
+	bash .devops/scripts/run_update_data.sh

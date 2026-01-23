@@ -43,3 +43,9 @@ variable "artifacts_gcs_uri" {
   description = "GCS URI to the root directory containing all model and feature set artifacts"
   type        = string
 }
+
+
+variable "data_storage_bucket_name" {
+  description = "Name of the data bucket that contains the raw data, the processed data and the data enriched with user inputs"
+  type        = string
+}

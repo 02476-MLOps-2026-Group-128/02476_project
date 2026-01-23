@@ -2,7 +2,7 @@
 batch_size: 256 # int
 
 # Maximum number of training epochs.
-max_epochs: 5 # int
+max_epochs: 10 # int
 
 # DataLoader worker count.
 num_workers: 5 # int
@@ -16,10 +16,11 @@ pin_memory: false # bool
 # Random seed for reproducibility.
 seed: 42 # int
 
-# Directory to save trained models.
-models_dir: models # Path as string, should be converted to Path
-
 deterministic: true # bool
+
+enable_checkpointing: true # bool
+
+logger: true # bool
 
 log_every_n_steps: 50 # int
 
