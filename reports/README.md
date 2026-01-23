@@ -52,55 +52,55 @@ will check the repositories and the code to verify your answers.
 
 ### Week 1
 
-* [ ] Create a git repository (M5)
-* [ ] Make sure that all team members have write access to the GitHub repository (M5)
-* [ ] Create a dedicated environment for you project to keep track of your packages (M2)
-* [ ] Create the initial file structure using cookiecutter with an appropriate template (M6)
-* [ ] Fill out the `data.py` file such that it downloads whatever data you need and preprocesses it (if necessary) (M6)
-* [ ] Add a model to `model.py` and a training procedure to `train.py` and get that running (M6)
-* [ ] Remember to either fill out the `requirements.txt`/`requirements_dev.txt` files or keeping your
+* [x] Create a git repository (M5)
+* [x] Make sure that all team members have write access to the GitHub repository (M5)
+* [x] Create a dedicated environment for you project to keep track of your packages (M2)
+* [x] Create the initial file structure using cookiecutter with an appropriate template (M6)
+* [x] Fill out the `data.py` file such that it downloads whatever data you need and preprocesses it (if necessary) (M6)
+* [x] Add a model to `model.py` and a training procedure to `train.py` and get that running (M6)
+* [x] Remember to either fill out the `requirements.txt`/`requirements_dev.txt` files or keeping your
     `pyproject.toml`/`uv.lock` up-to-date with whatever dependencies that you are using (M2+M6)
-* [ ] Remember to comply with good coding practices (`pep8`) while doing the project (M7)
-* [ ] Do a bit of code typing and remember to document essential parts of your code (M7)
-* [ ] Setup version control for your data or part of your data (M8)
-* [ ] Add command line interfaces and project commands to your code where it makes sense (M9)
-* [ ] Construct one or multiple docker files for your code (M10)
-* [ ] Build the docker files locally and make sure they work as intended (M10)
-* [ ] Write one or multiple configurations files for your experiments (M11)
-* [ ] Used Hydra to load the configurations and manage your hyperparameters (M11)
+* [x] Remember to comply with good coding practices (`pep8`) while doing the project (M7)
+* [x] Do a bit of code typing and remember to document essential parts of your code (M7)
+* [x] Setup version control for your data or part of your data (M8)
+* [x] Add command line interfaces and project commands to your code where it makes sense (M9)
+* [x] Construct one or multiple docker files for your code (M10)
+* [x] Build the docker files locally and make sure they work as intended (M10)
+* [x] Write one or multiple configurations files for your experiments (M11)
+* [x] Used Hydra to load the configurations and manage your hyperparameters (M11)
 * [ ] Use profiling to optimize your code (M12)
-* [ ] Use logging to log important events in your code (M14)
-* [ ] Use Weights & Biases to log training progress and other important metrics/artifacts in your code (M14)
+* [x] Use logging to log important events in your code (M14)
+* [x] Use Weights & Biases to log training progress and other important metrics/artifacts in your code (M14)
 * [ ] Consider running a hyperparameter optimization sweep (M14)
-* [ ] Use PyTorch-lightning (if applicable) to reduce the amount of boilerplate in your code (M15)
+* [x] Use PyTorch-lightning (if applicable) to reduce the amount of boilerplate in your code (M15)
 
 ### Week 2
 
-* [ ] Write unit tests related to the data part of your code (M16)
+* [x] Write unit tests related to the data part of your code (M16)
 * [ ] Write unit tests related to model construction and or model training (M16)
-* [ ] Calculate the code coverage (M16)
-* [ ] Get some continuous integration running on the GitHub repository (M17)
-* [ ] Add caching and multi-os/python/pytorch testing to your continuous integration (M17)
-* [ ] Add a linting step to your continuous integration (M17)
-* [ ] Add pre-commit hooks to your version control setup (M18)
+* [x] Calculate the code coverage (M16)
+* [x] Get some continuous integration running on the GitHub repository (M17)
+* [x] Add caching and multi-os/python/pytorch testing to your continuous integration (M17)
+* [x] Add a linting step to your continuous integration (M17)
+* [x] Add pre-commit hooks to your version control setup (M18)
 * [ ] Add a continues workflow that triggers when data changes (M19)
 * [ ] Add a continues workflow that triggers when changes to the model registry is made (M19)
-* [ ] Create a data storage in GCP Bucket for your data and link this with your data version control setup (M21)
-* [ ] Create a trigger workflow for automatically building your docker images (M21)
+* [x] Create a data storage in GCP Bucket for your data and link this with your data version control setup (M21)
+* [x] Create a trigger workflow for automatically building your docker images (M21)
 * [ ] Get your model training in GCP using either the Engine or Vertex AI (M21)
-* [ ] Create a FastAPI application that can do inference using your model (M22)
-* [ ] Deploy your model in GCP using either Functions or Run as the backend (M23)
-* [ ] Write API tests for your application and setup continues integration for these (M24)
-* [ ] Load test your application (M24)
+* [x] Create a FastAPI application that can do inference using your model (M22)
+* [x] Deploy your model in GCP using either Functions or Run as the backend (M23)
+* [x] Write API tests for your application and setup continues integration for these (M24)
+* [x] Load test your application (M24)
 * [ ] Create a more specialized ML-deployment API using either ONNX or BentoML, or both (M25)
 * [ ] Create a frontend for your API (M26)
 
 ### Week 3
 
 * [ ] Check how robust your model is towards data drifting (M27)
-* [ ] Setup collection of input-output data from your deployed application (M27)
+* [x] Setup collection of input-output data from your deployed application (M27)
 * [ ] Deploy to the cloud a drift detection API (M27)
-* [ ] Instrument your API with a couple of system metrics (M28)
+* [x] Instrument your API with a couple of system metrics (M28)
 * [ ] Setup cloud monitoring of your instrumented application (M28)
 * [ ] Create one or more alert systems in GCP to alert you if your app is not behaving correctly (M28)
 * [ ] If applicable, optimize the performance of your data loading using distributed data loading (M29)
@@ -109,12 +109,12 @@ will check the repositories and the code to verify your answers.
 
 ### Extra
 
-* [ ] Write some documentation for your application (M32)
+* [x] Write some documentation for your application (M32)
 * [ ] Publish the documentation to GitHub Pages (M32)
 * [ ] Revisit your initial project description. Did the project turn out as you wanted?
 * [ ] Create an architectural diagram over your MLOps pipeline
 * [ ] Make sure all group members have an understanding about all parts of the project
-* [ ] Uploaded all your code to GitHub
+* [x] Uploaded all your code to GitHub
 
 ## Group information
 
@@ -123,7 +123,7 @@ will check the repositories and the code to verify your answers.
 >
 > Answer:
 
---- question 1 fill here ---
+128
 
 ### Question 2
 > **Enter the study number for each member in the group**
@@ -134,7 +134,7 @@ will check the repositories and the code to verify your answers.
 >
 > Answer:
 
---- question 2 fill here ---
+s214658, s251707, s252918, s243250
 
 ### Question 3
 > **Did you end up using any open-source frameworks/packages not covered in the course during your project? If so**
@@ -148,7 +148,7 @@ will check the repositories and the code to verify your answers.
 >
 > Answer:
 
---- question 3 fill here ---
+We used Terraform to streamline the infrastructure setup for our system. Navigating the Google Cloud Console proved to be cumbersome and resource-intensive on our laptops, so we found it much more efficient to manage everything through Terraform. Additionally, having our infrastructure defined as code provided a clear and organized overview of all resources, effectively serving as both documentation and a reproducible blueprint for our setup. We also used `Make` to group our calls to our scripts to automate our most recurrent development tasks.
 
 ## Coding environment
 
@@ -168,7 +168,7 @@ will check the repositories and the code to verify your answers.
 >
 > Answer:
 
---- question 4 fill here ---
+We managed all project dependencies using uv, relying exclusively on the pyproject.toml and uv.lock files, and deliberately chose not to maintain requirements.txt files to keep dependency management streamlined. Dependencies were added and tracked using the `uv add` and `uv add --dev` commands, which ensured both production and development requirements were consistently recorded. To set up an identical development environment, a new team member would simply need to clone the repository and run `uv sync`, which installs all necessary packages as specified in the project files. Additionally, we used Make to organize and automate common development tasks, like running the API, tests, and training, through simple make commands. For containerized workflows, Docker is required used to ensure consistency across different systems. This approach makes onboarding straightforward and reproducible, as all environment specifications and automation scripts are version-controlled within the repository.
 
 ### Question 5
 
@@ -184,7 +184,11 @@ will check the repositories and the code to verify your answers.
 >
 > Answer:
 
---- question 5 fill here ---
+From the cookiecutter template we have moved the content of the `src` folder in a `diabetic_classification` folder inside of it. We have used the `data.py`, `train.py` and `model.py` files. We have also added a `constants.py` file to store some useful values. We haven't used the `visualize.py` file, as well as the `evaluate,py` file for the evaluation is taken care of in `train.py`.
+
+Furthermore, we have added the `.devops` folder that contains scripts useful for development, it splits it 2 sub-folders: `scripts` which contains classic bash scripts and a `python_scripts` subfolder. These scripts aren't intended to be called directly, but are called by the `Makefile`. Because we use make to organize our scripts, we have deleted the `tasks.py` file that makes us of invoke.
+
+Finally, we have added an `infrastructure/` folder to hold all the Terraform-related files, as well as a `data/` folder that contains the dvc files as well as the
 
 ### Question 6
 
@@ -218,7 +222,7 @@ will check the repositories and the code to verify your answers.
 >
 > Answer:
 
---- question 7 fill here ---
+We implemented a total of 13 unit and integration tests, not including our separate Locust performance tests. The majority of these tests focus on the most critical components of our application: data processing and the inference API. For data processing, we verify that data can be fetched, is correctly normalized, and is split into training and test sets according to the configuration. For the API, our tests ensure that models are properly loaded, can perform inference as expected, and that the model registry endpoint accurately reflects the available models.
 
 ### Question 8
 
@@ -248,7 +252,9 @@ will check the repositories and the code to verify your answers.
 >
 > Answer:
 
---- question 9 fill here ---
+Our workflow made extensive use of issues, branches, and pull requests to ensure a structured and collaborative development process. For each major task or feature, we first created a corresponding issue in GitHub. Team members would then assign themselves to an issue, create a dedicated branch for their work, and implement the required changes. Once the work was ready, a pull request (PR) was opened, which automatically triggered our continuous integration (CI) workflows to run all tests and code quality checks.
+
+To maintain code quality and encourage peer review, we enforced branch protection rules: a PR could only be merged into the main branch after it had been reviewed and approved by at least one other team member, and only if all CI checks passed successfully. This approach helped us catch bugs early, maintain a clean main branch, and foster collaboration and accountability within the team. By linking issues to PRs, we also ensured that all work was traceable and that progress on tasks was clearly documented throughout the project.
 
 ### Question 10
 
@@ -280,7 +286,19 @@ will check the repositories and the code to verify your answers.
 >
 > Answer:
 
---- question 11 fill here ---
+Our continuous integration (CI) setup ensures code quality, reliability, and cross-platform compatibility. We have two main workflows: one for linting and static analysis, and another for testing and building.
+
+The linting workflow uses Ruff (configured via pyproject.toml) to check and enforce code formatting and style. It then runs mypy on the src and tests directories to verify type annotations and catch potential type errors. This workflow is triggered on every push to a branch with a pull request (PR), ensuring only well-formatted and type-safe code is merged.
+
+The testing workflow is also triggered on every push to a PR branch, running all unit and integration tests to catch issues early. To optimize feedback, we split the tests into two parallel jobs: unit tests (which run quickly and do not require model files or API startup) and integration tests (which validate end-to-end functionality, including model loading and API endpoints). This parallelization allows us to catch errors rapidly while still thoroughly testing the full system. Caching is used to speed up uv dependency installation. To guarantee our code works across different environments, we run unit tests on Ubuntu, Windows, and macOS using Python 3.12. This multi-platform testing helps us identify and resolve compatibility issues early.
+
+The build workflow is only triggered when changes are merged into main. After all tests have passed and the PR is approved and merged, this workflow uses Google Cloud Build to build the docker images automatically. Integrating cloudbuild at this stage ensures that only thoroughly tested and reviewed code is built and ready to be deployed.
+
+Examples of our triggered workflows:
+- PR push:
+    - Linting: https://github.com/02476-MLOps-2026-Group-128/02476_project/actions/runs/21282615447
+    - Tests: https://github.com/02476-MLOps-2026-Group-128/02476_project/actions/runs/21278204599
+- Main push (build): https://github.com/02476-MLOps-2026-Group-128/02476_project/actions/runs/21284357876
 
 ## Running code and tracking experiments
 
