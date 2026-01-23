@@ -387,16 +387,21 @@ BUCKET_NAME = "diabetes-health-indicators-dataset"
 @app.get("/reports", response_class=HTMLResponse)
 async def reports():
     """Get request method that returns a monitoring report."""
-    reference_data = get_reference_data()
-    input_data = get_input_data()
+    reference_data, input_data = get_data_drift_data()
 
-    reference_data = reference_data[input_data.columns]
     # Evidently expects the target column to be named "target"
     reference_data = reference_data.rename(columns={"diagnosed_diabetes": "target"})
     input_data = input_data.rename(columns={"diagnosed_diabetes": "target"})
 
+    # Find columns that are 100% null in input_data
+    empty_cols = input_data.columns[input_data.isnull().all()]
+
+    # Drop them from both so the schemas match
+    reference_data = reference_data.drop(columns=empty_cols)
+    input_data = input_data.drop(columns=empty_cols)
+
     # Generate Evidently report and save as HTML
-    data_drift_report = Report(metrics=[DataDriftPreset(), DataQualityPreset(), TargetDriftPreset()])
+    data_drift_report = Report(metrics=[DataDriftPreset(), TargetDriftPreset(), DataQualityPreset()])
     data_drift_report.run(current_data=input_data, reference_data=reference_data)
     data_drift_report.save_html("datadrift.html")
 
@@ -406,22 +411,25 @@ async def reports():
 
     return HTMLResponse(content=html_content, status_code=200)
 
-def get_reference_data() -> pd.DataFrame:
-    """Download the processed train data from GCP bucket."""
-    bucket = storage.Client().bucket(BUCKET_NAME)
-    blob = bucket.blob("processed/train_data.csv")
-    blob.download_to_filename(blob.name)
-    return pd.read_csv(blob.name)
-
-def get_input_data(n = None) -> pd.DataFrame:
-    """Download n rows of input data from GCP bucket."""
-    bucket = storage.Client().bucket(BUCKET_NAME)
+def get_data_drift_data(n = None) -> tuple[pd.DataFrame, pd.DataFrame]:
+    """Download the enriched diabetes dataset from GCP bucket and split into train and input data."""
+    client = storage.Client()
+    bucket = client.bucket(BUCKET_NAME)
     blob = bucket.blob("enriched/diabetes_dataset.csv")
-    blob.download_to_filename(blob.name)
-    data = pd.read_csv(blob.name)
-    # Remove the first 10000 rows, which were used for initial testing
-    data = data.iloc[10000:]
-    if n is None:
-        return data
+    blob.download_to_filename("input_data.csv")
+    data = pd.read_csv("input_data.csv")
+    print(f"Downloaded data shape: {data.shape}")
 
-    return data.tail(n)
+    # The first 100.000 rows were used as training data
+    train_length = 100000
+    train_data = data.iloc[:train_length]
+    print(f"Training data shape: {train_data.shape}")
+    # The remaining rows were user input
+    input_data = data.iloc[train_length:]
+    print(f"Input data shape: {input_data.shape}")
+
+     # If n is specified, return only the last n rows of input_data
+    if n is None:
+        return train_data, input_data
+
+    return train_data, input_data.tail(n)
