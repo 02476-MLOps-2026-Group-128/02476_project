@@ -203,7 +203,14 @@ Finally, we have added an `infrastructure/` folder to hold all the Terraform-rel
 >
 > Answer:
 
---- question 6 fill here ---
+For enforcing code formatting rules we used `ruff`. By default, ruff rules adhere to the `PEP 8` style guide. It is important to have such styling rules in larger projects, because it keeps the code readable and ensures consistent style across different developers. A consistent style removes noise in pull requests. For example, without a required style guide, developers could add/remove whitelines, according to their own style. This adds (unnecessary) changes, making pull requests less structured.
+
+Requiring function documentation makes the code easier to maintain.
+
+Our custom `ruff` rules can be found in `pyproject.toml` (including the choices we have made about conflicting rules). We have overwritten the maximum line-length to 120 characters, applied rules for `imports, docstrings, naming, errors and warnings` (the rules these come with can be found [here](https://docs.astral.sh/ruff/rules/)). For tests we have not applied the docstrings reequirement, since the test name should be self-explanatory.
+
+We have also included the static type-checker `mypy` to run on both the `src` and `tests` folders,  which checks for type errors. Some packages conflict with `mypy`'s missing imports checker. We have ignored checks for these, which can be seen in `pyproject.toml`.
+Passing these rules has been made required for pull requests to main, as can be seen in `.github/workflows/linting.yaml`.
 
 ## Version control
 
@@ -236,7 +243,7 @@ We implemented a total of 13 unit and integration tests, not including our separ
 > *code and even if we were then...*
 >
 > Answer:
-
+Vojta will do this one
 --- question 8 fill here ---
 
 ### Question 9
@@ -252,9 +259,9 @@ We implemented a total of 13 unit and integration tests, not including our separ
 >
 > Answer:
 
-Our workflow made extensive use of issues, branches, and pull requests to ensure a structured and collaborative development process. For each major task or feature, we first created a corresponding issue in GitHub. Team members would then assign themselves to an issue, create a dedicated branch for their work, and implement the required changes. Once the work was ready, a pull request (PR) was opened, which automatically triggered our continuous integration (CI) workflows to run all tests and code quality checks.
+Our workflow made extensive use of issues, branches, and pull requests to ensure a structured and collaborative development process. For each major task or feature, we first created a corresponding issue in GitHub. During meetings team members would then assign themselves to an issue, create a dedicated branch for their work, and implement the required changes. Once the work was ready, a pull request (PR) was opened, which automatically triggered our continuous integration (CI) workflows to run all tests and code quality checks.
 
-To maintain code quality and encourage peer review, we enforced branch protection rules: a PR could only be merged into the main branch after it had been reviewed and approved by at least one other team member, and only if all CI checks passed successfully. This approach helped us catch bugs early, maintain a clean main branch, and foster collaboration and accountability within the team. By linking issues to PRs, we also ensured that all work was traceable and that progress on tasks was clearly documented throughout the project.
+To maintain code quality and encourage peer review, we enforced branch protection rules: a PR could only be merged into the main branch after it had been reviewed and approved by at least one other team member, and only if all CI passed successfully. This approach helped us catch bugs early, maintain a clean main branch, and foster collaboration and accountability within the team. By linking issues to PRs, we also ensured that all work was traceable and that progress on tasks was clearly documented throughout the project.
 
 ### Question 10
 
@@ -269,7 +276,10 @@ To maintain code quality and encourage peer review, we enforced branch protectio
 >
 > Answer:
 
---- question 10 fill here ---
+We have used DVC to manage data versioning in the following way: the content of the `data/` folder at the project root is backed up in a Data Bucket. One sub-folder, `enriched/` had a more specific use: it contains a dataset in the form of a csv file that contains the initial data concatenated to the user input data.
+
+The user inputs made via the API are first collected in the form of JSON files, which have the following naming: `timestamp.json` and are stored in the data bucket. Once an amount of user inputs considered sufficient is collected, the script `make update-data` can be run from the local environment, which downloads the `enriched/diabetes_dataset.csv` file as well as the user inputs, concatenates the user inputs at the end of the csv file, and uses dvc to push the dataset on the data bucket as a new version.
+
 
 ### Question 11
 
@@ -317,7 +327,14 @@ Examples of our triggered workflows:
 >
 > Answer:
 
---- question 12 fill here ---
+For running training experiments we set up `Hydra`. The hydra config files can be found at `configs/hydra`. These config values are passed to the train method as a dictionary. The Hydra logs are stored in the same directory as the model output, in a `/hydra` subfolder.
+
+It is possible to change these config values either in the `.yaml` files itself, or overwrite them from the CLI, for example:
+```bash
+uv run src/diabetic_classification/train.py optimizer.lr=0.001
+```
+
+We have also performed a hyperparameter sweep using hydra's multi-run functionality. The exact command used and the results can be found in `README.md`.
 
 ### Question 13
 
@@ -332,7 +349,13 @@ Examples of our triggered workflows:
 >
 > Answer:
 
---- question 13 fill here ---
+We made use of hydra config files. Whenever an experiment is run the following happens: hydra reads the config file, and passes the provided values as a dictionary to the train script. The training script doesn't take any other parameters, and fills any parameter needed from the hydra config. We have defined hydra's output in `configs/hydra/config.yaml`, which outputs to the same directory as where the model is outputted, keeping configuration and result together.
+
+An overview of the output after `train.py` has run:
+[output strucutre](figures/output_stucture.png).
+
+
+To reproduce an experiment, take the `config.yaml` file which was used for the model, and either change the path inside `@hydra.main(...)`, or update the parameters of the currently used config files to be equal to the experiment to be reproduced.
 
 ### Question 14
 
@@ -349,6 +372,8 @@ Examples of our triggered workflows:
 >
 > Answer:
 
+Vojta?
+
 --- question 14 fill here ---
 
 ### Question 15
@@ -364,7 +389,15 @@ Examples of our triggered workflows:
 >
 > Answer:
 
---- question 15 fill here ---
+We used Docker to containerize both our training pipeline and inference API, ensuring reproducibility and environment consistency across local development and cloud deployments. By containerizing the training pipeline, we can easily launch multiple training runs with different hyperparameters in parallel, isolated from the host system and each other. The inference API is also containerized, which makes deploying to Google Cloud Run or running locally seamless, as the same image can be used in both environments.
+
+To run a training job with custom hyperparameters, you can override configuration values directly from the command line. For example:
+
+`docker run --rm -v $(pwd)/models:/app/models train:latest trainer.batch_size=128 trainer.max_epochs=10 model.hidden_dim=64`
+
+This command mounts a local models directory to the container for output, and overrides the batch size, number of epochs, and model hidden dimension. This flexibility allows for rapid experimentation and easy scaling.
+
+Link to Dockerfile: https://github.com/02476-MLOps-2026-Group-128/02476_project/blob/main/dockerfiles/train.dockerfile
 
 ### Question 16
 
@@ -379,7 +412,7 @@ Examples of our triggered workflows:
 >
 > Answer:
 
---- question 16 fill here ---
+To perform debugging we mainly relied on our unit and integration tests set up with PyTest. This allowed us to use the built-in debugger and set break points to inspect the different variable initializations.
 
 ## Working in the cloud
 
@@ -396,7 +429,13 @@ Examples of our triggered workflows:
 >
 > Answer:
 
---- question 17 fill here ---
+We used:
+- Cloud build for building images as described in the question X about our CI pipeline
+- Buckets to store data, models and configuration like feature sets
+- Artifact registry for docker images
+- Cloud Run for deploying the inference api and frontend
+- Vertex AI for?...
+- IAM for creating service accounts for the github workflows
 
 ### Question 18
 
@@ -411,7 +450,7 @@ Examples of our triggered workflows:
 >
 > Answer:
 
---- question 18 fill here ---
+We didn't make use of compute engine directly, since we used Vertex AI for model training. Also, we had GPUs available to ourselves to run accelerated training, and as we are deploying our applications with cloud run, there is no need for VM.
 
 ### Question 19
 
@@ -420,7 +459,10 @@ Examples of our triggered workflows:
 >
 > Answer:
 
---- question 19 fill here ---
+Here is a figure showing the content of our data bucket:
+
+![Content of data bucket](figures/data_bucket_figure.png)
+
 
 ### Question 20
 
@@ -429,7 +471,8 @@ Examples of our triggered workflows:
 >
 > Answer:
 
---- question 20 fill here ---
+Here is a screenshot of our artifact registry:
+![artifact registry screenshot](figures/model_registry_screenshot.png)
 
 ### Question 21
 
@@ -438,7 +481,7 @@ Examples of our triggered workflows:
 >
 > Answer:
 
---- question 21 fill here ---
+Here is a screenshot of our GCP cloud build history: ![gcp_build_history](figures/gcp_build_history.png)
 
 ### Question 22
 
@@ -453,7 +496,16 @@ Examples of our triggered workflows:
 >
 > Answer:
 
---- question 22 fill here ---
+We managed to train our model in the cloud using Vertex AI. We decided to go with Vertex AI since it is designed for training models, and we don't have to manually turn the VM on and off, saving credits.
+To trigger a training job in the cloud, the following command should be run:
+```bash
+gcloud ai custom-jobs create --region=europe-west4 --display-name=train --config=configs/config_gpu.yaml
+```
+
+This command uses the configuration file configs/config_gpu.yaml, which specifies where to find the docker image, the machine type to use (which we have configured to use a GPU), the output directory, and the Weights & Biases API key for logging. Our GCP project has access to a GPU, so in config_gpu.yaml we specify that we want to use a GPU for training: NVIDIA_TESLA_T4.
+The docker image specified inside config_gpu.yaml is the one which is automatically generated after each push to main, as shown in Q11.
+
+The status of the training job can be monitored in the GCP console: [here](https://console.cloud.google.com/vertex-ai/training/custom-jobs?project=diabetic-classification-484510&vertex_ai_region=europe-west4).
 
 ## Deployment
 
@@ -470,7 +522,15 @@ Examples of our triggered workflows:
 >
 > Answer:
 
---- question 23 fill here ---
+We developed a FastAPI to serve our trained models. On startup, the API automatically pulls the latest model weights, configuration files, and available feature sets from our model bucket, building a dynamic model registry in memory (or on GPU if available). This enables the API to serve multiple models and feature sets flexibly.
+
+The API exposes several endpoints:
+- `GET /`: Health check and overview of available endpoints.
+- `GET /models`: Returns a JSON structure describing the model registry, allowing clients to discover available models and feature sets.
+- `POST /predict/{problem_type}/{model_type}/{feature_set}/`: Accepts a feature map, converts it to a tensor, and returns predictions from the selected model. The path parameters specify which model and feature set to use.
+- `GET /reports`: Generates and returns a data analysis report (see Q26).
+- `GET /feature-sets`: Lists all available feature sets.
+- `GET /metrics`: Exposes Prometheus metrics for monitoring.
 
 ### Question 24
 
@@ -486,7 +546,18 @@ Examples of our triggered workflows:
 >
 > Answer:
 
---- question 24 fill here ---
+We deployed our FastAPI application both locally and in the cloud. Initially, we built and tested the Docker image locally to ensure the API served models correctly. Once validated, we set up CI/CD pipelines using GitHub Actions and Google Cloud Build, so that every push to the main branch automatically builds and publishes a new API image to our Docker registry.
+
+For cloud deployment, we used Terraform to automate the provisioning of Google Cloud Run, making the API publicly accessible at: https://diabetic-fastapi-1012271147761.europe-west4.run.app. This setup ensures that the latest version of the API is always available and can be rolled back or redeployed easily.
+
+To invoke the deployed service for inference, a user can run:
+```sh
+curl -X POST \
+  -H "Content-Type: application/json" \
+  --data @sample.json \
+  "https://diabetic-fastapi-1012271147761.europe-west4.run.app/predict/diagnosed_diabetes/MLP/feature_set1/"
+```
+where `sample.json` contains the required feature mappings. The expected input schema can be found at: https://diabetic-fastapi-1012271147761.europe-west4.run.app/feature-sets/
 
 ### Question 25
 
@@ -502,7 +573,7 @@ Examples of our triggered workflows:
 >
 > Answer:
 
---- question 25 fill here ---
+For functional testing we created integration tests for pytest with httpx
 
 ### Question 26
 
@@ -518,6 +589,10 @@ Examples of our triggered workflows:
 > Answer:
 
 --- question 26 fill here ---
+
+=> Peter? Monitoring
+
+We have implemented data drift monitoring through the addition af the `/reports` endoint. The reports compare the training data to the user input data. The reports are generated using `EvidentlyAI`, and we use the `DataDriftPreset, TargetDriftPreset and DataQualityPreset` report templates.
 
 ## Overall discussion of project
 
@@ -536,7 +611,12 @@ Examples of our triggered workflows:
 >
 > Answer:
 
---- question 27 fill here ---
+We started with $50.0 in credits, and as of writing this report, we are at $47.91, so we have only spent $2.09 in credits. We consider this cheap, given the fact that we used GCP for various tasks such as docker image building, image storage, data (CSV) storage, API + frontend hosting and training the model with Vertex AI. However, it should also be admitted that during this project we have not spent as much time on optimizing and training our model as would be typical for a deployed ML application. Running training on larger models, with more epochs would definetely have had a larger impact on our credit usage.
+
+Working in the cloud was a valuable experience, teaching us that it is very accessible and not expensive (on the scale of our projects). The cloud enables you to try many configurations and experiments, without worying about not having the adequate resources.
+
+A breakdown of our costs:
+Here is a screenshot of our GCP cloud build history: ![cost breakdown from GCP](figures/cost_breakdown.png)
 
 ### Question 28
 
@@ -601,4 +681,5 @@ Examples of our triggered workflows:
 > *We have used ChatGPT to help debug our code. Additionally, we used GitHub Copilot to help write some of our code.*
 > Answer:
 
---- question 31 fill here ---
+
+* Student s243250 was in charge of setting up the data versioning and managing the enrichment of the dataset with the additional user inputs. Furthermore, he set up a first script to train a model in a docker container, and wrote a function that wasn't used in the final project to convert checkpoint files from the training of the model to the onnx format.
