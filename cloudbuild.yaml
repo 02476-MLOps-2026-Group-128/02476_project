@@ -5,6 +5,9 @@ steps:
       - DOCKER_BUILDKIT=1
     args:
       - build
+      - --build-arg
+      - BUILDKIT_INLINE_CACHE=1
+      - --cache-from=europe-west4-docker.pkg.dev/diabetic-classification-484510/container-registry/train:latest
       - -f
       - dockerfiles/train.dockerfile
       - -t
@@ -16,6 +19,45 @@ steps:
     args:
       - push
       - europe-west4-docker.pkg.dev/diabetic-classification-484510/container-registry/train:latest
+    waitFor:
+      - Build training container image
+
+  - name: gcr.io/cloud-builders/docker
+    id: Build FastAPI container image
+    env:
+      - DOCKER_BUILDKIT=1
+    args:
+      - build
+      - --build-arg
+      - BUILDKIT_INLINE_CACHE=1
+      - --cache-from=europe-west4-docker.pkg.dev/diabetic-classification-484510/container-registry/fastapi:latest
+      - -f
+      - dockerfiles/fastapi.dockerfile
+      - -t
+      - europe-west4-docker.pkg.dev/diabetic-classification-484510/container-registry/fastapi:latest
+      - -t
+      - europe-west4-docker.pkg.dev/diabetic-classification-484510/container-registry/fastapi:$SHORT_SHA
+      - .
+
+  - name: gcr.io/cloud-builders/docker
+    id: Push FastAPI container image (latest)
+    args:
+      - push
+      - europe-west4-docker.pkg.dev/diabetic-classification-484510/container-registry/fastapi:latest
+    waitFor:
+      - Build FastAPI container image
+
+  - name: gcr.io/cloud-builders/docker
+    id: Push FastAPI container image (sha)
+    args:
+      - push
+      - europe-west4-docker.pkg.dev/diabetic-classification-484510/container-registry/fastapi:$SHORT_SHA
+    waitFor:
+      - Build FastAPI container image
 
 options:
   logging: CLOUD_LOGGING_ONLY
+  machineType: "E2_HIGHCPU_8"
+  diskSizeGb: "20"
+  env:
+    - "DOCKER_BUILDKIT=1"
