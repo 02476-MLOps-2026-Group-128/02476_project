@@ -192,6 +192,9 @@ lightning_logs/
 # Models
 models/
 
+# Multirun
+multirun/
+
 # Terraform
 .terraform/
 *.tfstate
