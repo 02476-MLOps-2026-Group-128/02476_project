@@ -350,7 +350,7 @@ We have also performed a hyperparameter sweep using hydra's multi-run functional
 We made use of hydra config files. Whenever an experiment is run the following happens: hydra reads the config file, and passes the provided values as a dictionary to the train script. The training script doesn't take any other parameters, and fills any parameter needed from the hydra config. We have defined hydra's output in `configs/hydra/config.yaml`, which outputs to the same directory as where the model is outputted, keeping configuration and result together.
 
 An overview of the output after `train.py` has run:
-[output strucutre](figures/output_stucture.png).
+![output structure](figures/output_structure.png)
 
 
 To reproduce an experiment, take the `config.yaml` file which was used for the model, and either change the path inside `@hydra.main(...)`, or update the parameters of the currently used config files to be equal to the experiment to be reproduced.
@@ -370,10 +370,12 @@ To reproduce an experiment, take the `config.yaml` file which was used for the m
 >
 > Answer:
 
-![Val/Balanced_acc](figures/W&BBalAcc.png)
+![Val Balanced_acc](figures/WnBBalAcc.png)
+
 As seen in the first image, we tracked val/balanced_acc across epochs for several runs of the diabetes-mlp model. Balanced accuracy averages sensitivity and specificity, so it provides an unbiased view when class distributions are skewed, which is the case in our dataset. The initial runs (blue and yellow) were trained without any class-imbalance handling and therefore leaned toward predicting the majority class. This leads to deceptively stable but low balanced accuracy scores around 0.58–0.62. After applying class-imbalance correction through positive class weights, later runs (pink and green) achieve substantially higher balanced accuracy, reaching around 0.90–0.91. These improvements indicate that the model learned to correctly identify minority-class samples rather than inflating performance by favouring the majority class.
 
-![Val/loss](figures/W&Bloss.png)
+![Val loss](figures/WnBloss.png)
+
 As seen in the second image, we also tracked val/loss, the validation loss we optimize during training.  Lower validation loss generally indicates better fit to the validation data and more reliable probability estimates. Unlike accuracy-based metrics, loss incorporates the confidence of predictions, which allows it to reveal situations where the model may be overconfident or poorly calibrated. For example, a model can achieve high accuracy while still assigning extreme probabilities to wrong predictions, resulting in higher loss. By comparing the loss curves with balanced accuracy, we can verify whether performance gains reflect improvements in minority-class detection or whether they stem from artifacts such as majority-class bias or overfitting.
 
 ### Question 15
@@ -474,7 +476,8 @@ Here is a figure showing the content of our data bucket:
 > Answer:
 
 Here is a screenshot of our artifact registry:
-![artifact registry screenshot](figures/model_registry_screenshot.png)
+
+![artifact registry screenshot](figures/artifact_registry_screenshot.png)
 
 ### Question 21
 
@@ -614,12 +617,14 @@ Second, we implemented data drift monitoring by adding a `/reports` endpoint to 
 >
 > Answer:
 
-We started with $50.0 in credits, and as of writing this report, we are at $47.91, so we have only spent $2.09 in credits. We consider this cheap, given the fact that we used GCP for various tasks such as docker image building, image storage, data (CSV) storage, API + frontend hosting and training the model with Vertex AI. However, it should also be admitted that during this project we have not spent as much time on optimizing and training our model as would be typical for a deployed ML application. Running training on larger models, with more epochs would definetely have had a larger impact on our credit usage.
+We started with $50.0 in credits, and as of writing this report, we are at $47.91, so we have only spent $2.09 in credits. We consider this cheap, given the fact that we used GCP for various tasks such as docker image building, image storage, data (CSV) storage, API + frontend hosting and training the model with Vertex AI. However, it should also be admitted that during this project we have not spent as much time on optimizing and training our model as would be typical for a deployed ML application. Running training on larger models, with more epochs would definitely have had a larger impact on our credit usage.
 
 Working in the cloud was a valuable experience, teaching us that it is very accessible and not expensive (on the scale of our projects). The cloud enables you to try many configurations and experiments, without worying about not having the adequate resources.
 
 A breakdown of our costs:
-Here is a screenshot of our GCP cloud build history: ![cost breakdown from GCP](figures/cost_breakdown.png)
+Here is a screenshot of our GCP cloud build history:
+
+![cost breakdown from GCP](figures/cost_breakdown.png)
 
 ### Question 28
 
