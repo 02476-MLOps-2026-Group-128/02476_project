@@ -1,0 +1,25 @@
+outs:
+- hash: md5
+  path: processed
+  files:
+  - relpath: standardization_params.csv
+    md5: 9720164f850671686903a0840c580072
+    size: 753
+    cloud:
+      remote_storage:
+        etag: 08e9dbf6c6c69e92031001
+        version_id: '1769064428842473'
+  - relpath: test_data.csv
+    md5: 5128b3ea3e62b0265ce6d1d3f7406ade
+    size: 8070574
+    cloud:
+      remote_storage:
+        etag: 0883f0c4c7c69e92031001
+        version_id: '1769064430123011'
+  - relpath: train_data.csv
+    md5: c2177da29654ff81a1c269ac3bd20095
+    size: 32278335
+    cloud:
+      remote_storage:
+        etag: 08b7cd8cc8c69e92031001
+        version_id: '1769064431298231'
