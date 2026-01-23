@@ -43,10 +43,10 @@ def finish_wandb(disable_wandb):
         yield
         return
 
-    if wandb.run is not None:
+    if getattr(wandb, "run", None) is not None:
         wandb.finish()
 
     yield
 
-    if wandb.run is not None:
+    if getattr(wandb, "run", None) is not None:
         wandb.finish()
