@@ -85,7 +85,10 @@ checklist for the exam. The parenthesis at the end indicates what module the bul
 
 
 ## Training
-Run: uv run python -m diabetic_classification.train
+Run: 
+```bash
+uv run python -m diabetic_classification.train
+```
 
 For the hyperparameter configuration we use Hydra config files, which can be found in the 'configs/hydra' directory. These parameters are added to the generated model folder, in a 'hydra' subfolder.
 
