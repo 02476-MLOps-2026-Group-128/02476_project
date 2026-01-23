@@ -7,3 +7,9 @@ service_account_name = "fastapi-sa"
 artifacts_gcs_uri = "gs://diabetic-classification-model-bucket/"
 data_storage_bucket_name = "diabetes-health-indicators-dataset"
 log_level = "info"
+
+# Frontend (Streamlit) deployment
+frontend_service_name = "diabetic-frontend"
+frontend_container_image = "europe-west4-docker.pkg.dev/diabetic-classification-484510/container-registry/frontend"
+frontend_container_image_tag = "latest"
+frontend_service_account_name = "frontend-sa"
