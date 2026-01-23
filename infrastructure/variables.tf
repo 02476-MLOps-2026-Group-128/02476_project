@@ -38,6 +38,30 @@ variable "service_account_name" {
   default     = "fastapi-sa"
 }
 
+# Frontend (Streamlit) variables
+variable "frontend_service_name" {
+  description = "Cloud Run service name for the frontend (Streamlit) app"
+  type        = string
+  default     = "diabetic-frontend"
+}
+
+variable "frontend_container_image" {
+  description = "Container image for frontend Cloud Run deployment"
+  type        = string
+}
+
+variable "frontend_container_image_tag" {
+  description = "Container image tag for frontend versioning (e.g., 'latest', 'v1.0.0')"
+  type        = string
+  default     = "latest"
+}
+
+variable "frontend_service_account_name" {
+  description = "Service account name for frontend Cloud Run"
+  type        = string
+  default     = "frontend-sa"
+}
+
 
 variable "artifacts_gcs_uri" {
   description = "GCS URI to the root directory containing all model and feature set artifacts"

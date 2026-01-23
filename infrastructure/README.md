@@ -38,6 +38,17 @@ The Terraform configuration provisions:
        terraform import google_service_account.fastapi_sa projects/<PROJECT_ID>/serviceAccounts/<SERVICE_ACCOUNT_EMAIL>
        terraform import google_cloud_run_service.fastapi projects/<PROJECT_ID>/locations/<REGION>/services/<SERVICE_NAME>
        terraform import google_cloud_run_service_iam_member.public_invoker "projects/<PROJECT_ID>/locations/<REGION>/services/<SERVICE_NAME> roles/run.invoker allUsers"
+
+      # Frontend (Streamlit) imports
+      terraform import google_service_account.frontend_sa projects/<PROJECT_ID>/serviceAccounts/<FRONTEND_SERVICE_ACCOUNT_EMAIL>
+      terraform import google_cloud_run_service.frontend projects/<PROJECT_ID>/locations/<REGION>/services/<FRONTEND_SERVICE_NAME>
+      terraform import google_cloud_run_service_iam_member.frontend_public_invoker "projects/<PROJECT_ID>/locations/<REGION>/services/<FRONTEND_SERVICE_NAME> roles/run.invoker allUsers"
+
+      # Find frontend service account email:
+      gcloud iam service-accounts list --filter="displayName:Frontend Cloud Run" --format="value(email)"
+
+      # Find frontend Cloud Run service name:
+      gcloud run services list --platform=managed --region=<REGION> --format="value(metadata.name)" | grep frontend
        ```
     - You can find the service account email in the GCP console or by running:
        ```bash
